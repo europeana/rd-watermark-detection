@@ -1,0 +1,11 @@
+https://github.com/heartexlabs/label-studio/archive/master.zip
+label-studio-ml
+itsdangerous==2.0.1
+torch
+torchvision
+torchmetrics
+pytorch-lightning
+fire
+pyeuropeana
+scikit-learn
+seaborn

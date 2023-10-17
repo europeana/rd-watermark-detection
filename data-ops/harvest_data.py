@@ -72,11 +72,12 @@ def main(**kwargs):
 
     saving_path = kwargs.get('saving_path')
     labeled_path = kwargs.get('labeled_path')
+    n_per_dataset = kwargs.get('n_per_dataset',150)
 
     print('Getting watermarks ...')
 
     watermark_df = harvest_watermark(
-        n_per_dataset = 150,
+        n_per_dataset = n_per_dataset,
     )
 
     print('Getting no-watermarks ...')

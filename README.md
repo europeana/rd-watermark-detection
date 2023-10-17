@@ -1,5 +1,26 @@
 # Watermarks
 
+Create docker image
+
+`docker build . -t watermark_image`
+
+Run docker container
+
+`docker run -v /home/jcejudo/projects/watermark_classification:/output -it watermark_image:latest`
+
+
+
+to do: add number of samples per dataset as argument
+
+
+`nohup python3 data-ops/harvest_data.py --n_per_dataset 10 --saving_path /output/data/testing.csv --labeled_path /output/data/parsed_dataset.csv &> /output/results/testing.out &`
+
+to do
+
+`nohup python3 data-ops/download_images.py --input /home/jcejudo/projects/watermark_classification/data/unlabeled.csv --saving_dir /home/jcejudo/projects/watermark_classification/data/unlabeled &> download_images.out &`
+
+
+
 conda activate water_env
 pip install -r requirements.txt
 

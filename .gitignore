@@ -1,3 +1,4 @@
 *.out
 lightning_logs*
+machine-learning/__pycache__*
 .ipynb_checkpoints*

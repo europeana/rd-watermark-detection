@@ -1,17 +1,12 @@
 # Watermarks
 
-torch
-torchvision
-torchmetrics
-pytorch-lightning
-
 Create docker image
 
 `docker build . -t watermark_image`
 
 Run docker container
 
-`docker run -v /home/jcejudo/projects/watermark_classification:/output -v $(pwd):/code -it watermark_image:latest`
+`docker run --gpus all -p 8090:8090 -v /home/jcejudo/projects/watermark_classification:/output -v $(pwd):/code -it watermark_image:latest`
 
 `docker run --gpus all -v /home/jcejudo/projects/watermark_classification:/output -v $(pwd):/code -it watermark_image:latest`
 
@@ -30,7 +25,20 @@ Model training
 
 `nohup python3 machine-learning/train.py --data_dir /output/data/labeled --saving_dir /output/results/iter_testing --max_epochs 2 --sample 0.25 &> /output/results/training.out &`
 
-`python machine-learning/evaluate.py --results_path /home/jcejudo/projects/watermark_classification/results/iter_6 --saving_path /home/jcejudo/projects/watermark_classification/results/iter_6/`
+`python3 machine-learning/evaluate.py --results_path /output/results/iter_5 --saving_path /output/results/iter_5`
+
+
+
+Predict
+
+`python3 machine-learning/predict.py --input /output/data/unlabeled --results_path /output/results/iter_5 --metadata /output/data/unlabeled.csv --saving_path /output/results/iter_5/predictions.csv --mode uncertain --n_predictions 100 --sample 0.1 --batch_size 64`
+
+Label studio
+
+label-studio -p 8090
+
+
+
 
 
 

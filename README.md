@@ -1,23 +1,36 @@
 # Watermarks
 
+torch
+torchvision
+torchmetrics
+pytorch-lightning
+
 Create docker image
 
 `docker build . -t watermark_image`
 
 Run docker container
 
-`docker run -v /home/jcejudo/projects/watermark_classification:/output -it watermark_image:latest`
+`docker run -v /home/jcejudo/projects/watermark_classification:/output -v $(pwd):/code -it watermark_image:latest`
+
+`docker run --gpus all -v /home/jcejudo/projects/watermark_classification:/output -v $(pwd):/code -it watermark_image:latest`
 
 
 
-to do: add number of samples per dataset as argument
+
+Data acquisition
 
 
 `nohup python3 data-ops/harvest_data.py --n_per_dataset 10 --saving_path /output/data/testing.csv --labeled_path /output/data/parsed_dataset.csv &> /output/results/testing.out &`
 
-to do
+`nohup python3 data-ops/download_images.py --input /output/data/testing.csv --saving_dir /output/data/testing &> /output/results/download_images.out &`
 
-`nohup python3 data-ops/download_images.py --input /home/jcejudo/projects/watermark_classification/data/unlabeled.csv --saving_dir /home/jcejudo/projects/watermark_classification/data/unlabeled &> download_images.out &`
+
+Model training
+
+`nohup python3 machine-learning/train.py --data_dir /output/data/labeled --saving_dir /output/results/iter_testing --max_epochs 2 --sample 0.25 &> /output/results/training.out &`
+
+`python machine-learning/evaluate.py --results_path /home/jcejudo/projects/watermark_classification/results/iter_6 --saving_path /home/jcejudo/projects/watermark_classification/results/iter_6/`
 
 
 

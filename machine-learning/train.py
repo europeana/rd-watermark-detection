@@ -60,7 +60,7 @@ class Classifier(pl.LightningModule):
         self.model = torchvision.models.resnet18(pretrained=True)
         self.model.fc = nn.Linear(self.model.fc.in_features, output_dim)
         self.sm = nn.Softmax(dim=1)
-        self.accuracy = torchmetrics.Accuracy()
+        self.accuracy = torchmetrics.Accuracy(task='binary')
 
     def forward(self, x):
         out = self.model(x)
@@ -165,9 +165,9 @@ def main(**kwargs):
     val_dataset = TrainingDataset(X_val,y_val,transform = test_transform)
     test_dataset = TrainingDataset(X_test,y_test,transform = test_transform)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size,collate_fn=my_collate)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size,collate_fn=my_collate)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size,collate_fn=my_collate)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size,collate_fn=my_collate,num_workers=7)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size,collate_fn=my_collate,num_workers=7)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size,collate_fn=my_collate,num_workers=7)
 
 
     model = Classifier(
@@ -179,14 +179,15 @@ def main(**kwargs):
     callbacks = [EarlyStopping(monitor="valid_loss",patience=3)]
 
     trainer = pl.Trainer(
-        gpus=1,
+        #gpus=1,
+        accelerator="auto",
         max_epochs = max_epochs,
         log_every_n_steps=10,
         callbacks = callbacks
     )
 
     trainer.fit(model, train_loader, val_loader)
-    trainer.test(test_dataloaders=test_loader)
+    trainer.test(dataloaders=test_loader)
 
     torch.save(model.state_dict(), saving_dir.joinpath('checkpoint.pth'))
 

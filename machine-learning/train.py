@@ -110,6 +110,7 @@ def main(**kwargs):
     learning_rate = kwargs.get('learning_rate',1e-4)
     threshold = kwargs.get('threshold',0.5)
     num_workers = 1
+    patience = 5
 
     data_dir = Path(data_dir)
     saving_dir = Path(saving_dir)
@@ -118,6 +119,8 @@ def main(**kwargs):
     train_transform = transforms.Compose([
         transforms.Resize((256, 256)),
         transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandomVerticalFlip(p=0.5),
+        torchvision.transforms.Grayscale(num_output_channels=3),
         #transforms.RandomRotation(degrees=(0, 45)),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
@@ -177,7 +180,7 @@ def main(**kwargs):
         threshold = threshold
     )
 
-    callbacks = [EarlyStopping(monitor="valid_loss",patience=3, verbose = True)]
+    callbacks = [EarlyStopping(monitor="valid_loss",patience=patience, verbose = True)]
 
     trainer = pl.Trainer(
         #gpus=1,

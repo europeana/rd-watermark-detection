@@ -1,7 +1,9 @@
 from pathlib import Path
+from tqdm import tqdm
 import pandas as pd
 import fire
 import pyeuropeana.apis as apis
+
 
 def id2url(id):
     try:
@@ -17,7 +19,10 @@ def main(**kwargs):
     dataset_path = kwargs.get("dataset_path")
     output_path = kwargs.get("output_path")
 
+
     dataset_path = Path(dataset_path)
+
+    tqdm.pandas()
 
     cat_list = []
     id_list = []
@@ -29,6 +34,7 @@ def main(**kwargs):
     df['uri'] = df['id'].apply(lambda x: "https://www.europeana.eu/en/item"+x)
     df['image_url'] = df['id'].apply(lambda x: id2url(x))
     df.to_csv(output_path,index = False)
+    print('Finished')
 
 
 

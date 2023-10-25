@@ -1,5 +1,6 @@
 import fire
 import pandas as pd
+import json
 
 import pyeuropeana.apis as apis
 import pyeuropeana.utils as utils
@@ -7,7 +8,9 @@ import pyeuropeana.utils as utils
 def harvest_watermark(**kwargs):
   n_per_dataset = kwargs.get('n_per_dataset',500)
   saving_path = kwargs.get('saving_path')
+  query_list = kwargs.get('query_list')
 
+  """
   query_list = [
     'edm_datasetName:481_*', # https://metis-publish-portal.eanadev.org/en/search?query=edm_datasetName%3A481_%2A
     'edm_datasetName:472_*', # https://metis-publish-portal.eanadev.org/en/search?query=edm_datasetName%3A472_%2A
@@ -27,6 +30,8 @@ def harvest_watermark(**kwargs):
     'edm_datasetName:2048202_*', # https://metis-publish-portal.eanadev.org/en/search?query=edm_datasetName%3A2048202_%2A
     'edm_datasetName:2022713*', # https://www.europeana.eu/en/search?page=1&view=grid&query=edm_datasetName%3A2022713%2A
   ]
+
+  """
 
 
   df = pd.DataFrame()
@@ -73,11 +78,16 @@ def main(**kwargs):
     saving_path = kwargs.get('saving_path')
     labeled_path = kwargs.get('labeled_path')
     n_per_dataset = kwargs.get('n_per_dataset',150)
+    datasets_path = kwargs.get('datasets_path')
+
+    with open(datasets_path, 'r') as f:
+      query_list = json.load(f)['query_list']
 
     print('Getting watermarks ...')
 
     watermark_df = harvest_watermark(
         n_per_dataset = n_per_dataset,
+        query_list = query_list,
     )
 
     print('Getting no-watermarks ...')

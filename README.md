@@ -1,4 +1,6 @@
-# Watermarks
+# Detection of watermarks in images
+
+## Setting up environment
 
 Create docker image
 
@@ -8,34 +10,49 @@ Run docker container
 
 `docker run --gpus all -p 8090:8090 -v /home/jcejudo/projects/watermark_classification:/output -v $(pwd):/code -it watermark_image:latest`
 
-`docker run --gpus all -v /home/jcejudo/projects/watermark_classification:/output -v $(pwd):/code -it watermark_image:latest`
+
+## Data acquisition
+
+to do: add queries as a json file
+
+`nohup python3 data-ops/harvest_data.py --datasets_path /output/data/new_datasets.json --n_per_dataset 200 --saving_path /output/data/unlabeled.csv --labeled_path /output/data/labeled_4312.csv &> /output/results/data_harvesting.out &`
+
+`nohup python3 data-ops/download_images.py --input /output/data/unlabeled.csv --saving_dir /output/data/unlabeled &> /output/results/download_images.out &`
+
+
+## Model training
+
+`nohup python3 machine-learning/train.py --batch_size 16 --data_dir /output/data/labeled_4312 --saving_dir /output/results/iter_6 --max_epochs 20 --sample 1.0 &> /output/results/training.out &`
+
+`python3 machine-learning/evaluate.py --results_path /output/results/iter_6 --saving_path /output/results/iter_6`
 
 
 
+## Predict
 
-Data acquisition
+`python3 machine-learning/predict.py --input /output/data/unlabeled --results_path /output/results/iter_6 --metadata /output/data/unlabeled.csv --saving_path /output/results/iter_6/predictions.csv --mode uncertain --n_predictions 700 --sample 1.0 --batch_size 64`
 
+## Annotate with Label-Studio
 
-`nohup python3 data-ops/harvest_data.py --n_per_dataset 10 --saving_path /output/data/testing.csv --labeled_path /output/data/parsed_dataset.csv &> /output/results/testing.out &`
-
-`nohup python3 data-ops/download_images.py --input /output/data/testing.csv --saving_dir /output/data/testing &> /output/results/download_images.out &`
-
-
-Model training
-
-`nohup python3 machine-learning/train.py --data_dir /output/data/labeled --saving_dir /output/results/iter_testing --max_epochs 2 --sample 0.25 &> /output/results/training.out &`
-
-`python3 machine-learning/evaluate.py --results_path /output/results/iter_5 --saving_path /output/results/iter_5`
+`label-studio -p 8090`
 
 
+import predictions to labelstudio, label, export annotations
 
-Predict
 
-`python3 machine-learning/predict.py --input /output/data/unlabeled --results_path /output/results/iter_5 --metadata /output/data/unlabeled.csv --saving_path /output/results/iter_5/predictions.csv --mode uncertain --n_predictions 100 --sample 0.1 --batch_size 64`
+moving annotations to labeled and removing from unlabeled images
 
-Label studio
+to do
 
-label-studio -p 8090
+`python data-ops/move_labeled.py --unlabeled_dir /home/jcejudo/projects/watermark_classification/data/unlabeled --labeled_dir /home/jcejudo/projects/watermark_classification/data/labeled --labels '/home/jcejudo/projects/watermark_classification/results/iter_5/project-15-at-2023-10-09-18-59-31d43bb2.csv'`
+
+
+
+parse labeled dataset
+
+to do: include error message if api key not detected
+
+`nohup python3 data-ops/parse_dataset.py --dataset_path /output/data/labeled --output_path /output/data/labeled.csv &> /output/results/parsing_labeled.out &`
 
 
 

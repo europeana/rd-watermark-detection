@@ -109,6 +109,7 @@ def main(**kwargs):
     batch_size = kwargs.get('batch_size',16)
     learning_rate = kwargs.get('learning_rate',1e-4)
     threshold = kwargs.get('threshold',0.5)
+    num_workers = 1
 
     data_dir = Path(data_dir)
     saving_dir = Path(saving_dir)
@@ -165,9 +166,9 @@ def main(**kwargs):
     val_dataset = TrainingDataset(X_val,y_val,transform = test_transform)
     test_dataset = TrainingDataset(X_test,y_test,transform = test_transform)
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size,collate_fn=my_collate,num_workers=7)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size,collate_fn=my_collate,num_workers=7)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size,collate_fn=my_collate,num_workers=7)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size,collate_fn=my_collate,num_workers=num_workers)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size,collate_fn=my_collate,num_workers=num_workers)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size,collate_fn=my_collate,num_workers=num_workers)
 
 
     model = Classifier(
@@ -176,13 +177,13 @@ def main(**kwargs):
         threshold = threshold
     )
 
-    callbacks = [EarlyStopping(monitor="valid_loss",patience=3)]
+    callbacks = [EarlyStopping(monitor="valid_loss",patience=3, verbose = True)]
 
     trainer = pl.Trainer(
         #gpus=1,
         accelerator="auto",
         max_epochs = max_epochs,
-        log_every_n_steps=10,
+        log_every_n_steps=100,
         callbacks = callbacks
     )
 

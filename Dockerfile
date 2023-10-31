@@ -14,7 +14,7 @@ RUN apt-get install -y python3.9 \
 
 RUN apt-get install -y python3-setuptools
 RUN apt-get install -y python3-pip
-
+RUN pip install -U pip
 RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
 RUN pip install -r requirements.txt

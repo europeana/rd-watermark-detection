@@ -1,13 +1,15 @@
 version: "3.3"
 services:
-  pixplot:
-      image: conda/miniconda3-centos7
+  machine_learning:
+      build: .
       stdin_open: true 
-      tty: true 
+      tty: true     
       volumes:
         - /home/jcejudo/projects/watermark_classification:/output
+        - .:/code
       ports:
-        - 5000:5000
+        - 5051:5051
+
       deploy:
         resources:
           reservations:
@@ -34,16 +36,14 @@ services:
       ports:
         - 8093:8093
 
-  machine_learning:
-      build: .
+  pixplot:
+      image: conda/miniconda3-centos7
       stdin_open: true 
-      tty: true     
+      tty: true 
       volumes:
         - /home/jcejudo/projects/watermark_classification:/output
-        - .:/code
       ports:
-        - 5051:5051
-
+        - 5000:5000
       deploy:
         resources:
           reservations:
@@ -51,3 +51,7 @@ services:
               - driver: nvidia
                 count: 1
                 capabilities: [gpu]
+
+
+
+

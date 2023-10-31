@@ -1,9 +1,6 @@
 # Detection of watermarks in images
 
-## Setting up environment
-
 docker-compose up -d
-
 
 ## Data acquisition
 
@@ -22,7 +19,7 @@ nohup python3 data-ops/download_images.py --input /output/data/unlabeled.csv --s
 ## Model training
 
 ```
-nohup python3 machine-learning/train.py --batch_size 16 --data_dir /output/data/labeled_4312 --saving_dir /output/results/iter_6 --max_epochs 20 --sample 0.1 &> /output/results/training.out &
+nohup python3 machine-learning/train.py --batch_size 16 --data_dir /output/data/labeled_4312 --saving_dir /output/results/iter_6 --max_epochs 20 --sample 1.0 &> /output/results/training.out &
 ```
 
 ```
@@ -76,24 +73,21 @@ nohup python3 data-ops/parse_dataset.py --dataset_path /output/data/labeled --ou
 
 # Dataset curation
 
-add ports for jupyter notebooks to docker compose
-
-
-https://visual-layer.readme.io/docs/analyzing-labeled-images
+## Fastdup
 
 https://github.com/visual-layer/fastdup
 
+https://visual-layer.readme.io/docs/analyzing-labeled-images
 
+docker-compose exec machine_learning bash
 
+jupyter notebook --port 5051 --ip 0.0.0.0 --no-browser --allow-root
 
-to do: add cleanlab to requirements.txt
-
-
-
-add jupyter notebook
-
+## Cleanlab
 
 https://github.com/cleanlab/cleanlab
+
+https://docs.cleanlab.ai/stable/tutorials/image.html
 
 
 
@@ -111,6 +105,10 @@ python -m http.server 5000
 
 
 
+
+# Deployment as API
+
+Flask
 
 
 

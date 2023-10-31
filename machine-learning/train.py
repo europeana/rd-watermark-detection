@@ -67,6 +67,10 @@ class Classifier(pl.LightningModule):
         out = self.sm(out)
         return out
 
+    def embeddings(self, x):
+        out = self.model(x)
+        return out
+
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)

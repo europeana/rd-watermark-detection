@@ -8,4 +8,6 @@ torchmetrics==1.2.0
 pytorch-lightning==2.1.0
 fastdup==1.64
 "cleanlab[all]"
+"cleanlab[datalab]"
+"cleanlab[image]"
 jupyter

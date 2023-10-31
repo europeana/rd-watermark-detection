@@ -35,14 +35,9 @@ nohup python3 data-ops/data-ops.py download --input /storage/data/unlabeled.csv 
 
 to do: 
 add crossvalidation
-merge the three files into a single one
 
 ```
-nohup python3 machine-learning/machine-learning.py train --batch_size 16 --data_dir /storage/data/labeled_4312 --saving_dir /storage/results/iter_6 --max_epochs 1 --sample 0.1 &> /storage/results/training.out &
-```
-
-```
-python3 machine-learning/evaluate.py --results_path /output/results/iter_6 --saving_path /output/results/iter_6
+nohup python3 machine-learning/machine-learning.py train --batch_size 16 --data_dir /storage/data/labeled_4312 --saving_dir /storage/results/iter_6 --max_epochs 1 --sample 0.1 --crossvalidation True &> /storage/results/training.out &
 ```
 
 ## Predict
@@ -74,14 +69,14 @@ Annotate and export as CSV
 moving annotations to labeled and removing from unlabeled images
 
 ```
-python3 data-ops/data-ops.py move_labeled --sample_dir /output/results/iter_6/sample --labeled_dir /output/data/labeled --labels '/output/results/iter_6/project-1-at-2023-10-31-14-05-97816efa.csv'
+python3 data-ops/data-ops.py move_labeled --sample_dir /storage/results/iter_6/sample --labeled_dir /storage/data/labeled --labels '/storage/results/iter_6/project-1-at-2023-10-31-14-05-97816efa.csv'
 ```
 parse labeled dataset
 
 to do: include error message if api key not detected
 
 ```
-nohup python3 data-ops/data-ops.py parse_dataset --dataset_path /output/data/labeled --output_path /output/data/labeled.csv &> /output/results/parsing_labeled.out &
+nohup python3 data-ops/data-ops.py parse_dataset --dataset_path /storage/data/labeled --output_path /storage/data/labeled.csv &> /storage/results/parsing_labeled.out &
 ```
 
 
@@ -108,7 +103,7 @@ https://github.com/cleanlab/cleanlab
 
 https://docs.cleanlab.ai/stable/tutorials/image.html
 
-First run crossvalidation using the machine_learning.py script
+First run crossvalidation using the machine_learning.py script with crossvalidation=True
 
 
 Run analysis
@@ -128,7 +123,7 @@ Install pixplot as in https://github.com/YaleDHLab/pix-plot
 to do: add arguments and metadata
 
 ```
-pixplot --images "/output/results/iter_6/sample/*.jpg"
+pixplot --images "/storage/results/iter_6/sample/*.jpg"
 
 python -m http.server 5000
 ```

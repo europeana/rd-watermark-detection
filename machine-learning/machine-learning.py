@@ -1,4 +1,3 @@
-
 import fire
 from pathlib import Path
 import torchvision
@@ -10,8 +9,9 @@ import torchmetrics
 import pytorch_lightning as pl
 import torch.nn as nn
 from torch.nn import functional as F
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, StratifiedKFold
 import json
+from tqdm import tqdm
 import seaborn as sn
 import pandas as pd
 from sklearn.metrics import confusion_matrix, precision_score,accuracy_score, recall_score
@@ -86,6 +86,7 @@ class Classifier(pl.LightningModule):
 
         self.model = torchvision.models.resnet18(pretrained=True)
         self.model.fc = nn.Linear(self.model.fc.in_features, output_dim)
+        self.embedding = nn.Sequential(*list(self.model.children())[:-1])
         self.sm = nn.Softmax(dim=1)
         self.accuracy = torchmetrics.Accuracy(task='binary')
 
@@ -95,7 +96,7 @@ class Classifier(pl.LightningModule):
         return out
 
     def embeddings(self, x):
-        out = self.model(x)
+        out = self.embedding(x)
         return out
 
     def training_step(self, batch, batch_idx):
@@ -130,6 +131,33 @@ def my_collate(batch):
     batch = list(filter(lambda x: x is not None, batch))
     return torch.utils.data.dataloader.default_collate(batch)
 
+# Method for computing out-of-sample embeddings
+def compute_embeddings(model, testloader,device):
+    embeddings_list = []
+
+    with torch.no_grad():
+        for data in tqdm(testloader):
+            images, labels = data[0].to(device), data[1].to(device)
+
+            embeddings = model.embeddings(images)
+            embeddings_list.append(embeddings.cpu())
+
+    return torch.vstack(embeddings_list)
+
+
+# Method for computing out-of-sample predicted probabilities
+def compute_pred_probs(model, testloader,device):
+    pred_probs_list = []
+
+    with torch.no_grad():
+        for data in tqdm(testloader):
+            images, labels = data[0].to(device), data[1].to(device)
+
+            outputs = model(images)
+            pred_probs_list.append(outputs.cpu())
+
+    return torch.vstack(pred_probs_list)
+
 def train(**kwargs):
 
     data_dir = kwargs.get('data_dir')
@@ -140,8 +168,12 @@ def train(**kwargs):
     batch_size = kwargs.get('batch_size',16)
     learning_rate = kwargs.get('learning_rate',1e-4)
     threshold = kwargs.get('threshold',0.5)
-    num_workers = 1
-    patience = 5
+    num_workers = kwargs.get('num_workers',1)
+    patience = kwargs.get('patience',5)
+    crossvalidation = kwargs.get('crossvalidation',False)
+    K = kwargs.get('K',5)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     data_dir = Path(data_dir)
     saving_dir = Path(saving_dir)
@@ -166,122 +198,198 @@ def train(**kwargs):
     imgs = np.array([str(p) for p in data_dir.rglob("*/*")])
     labels = np.array([Path(p).parent.name for p in imgs])
 
+    n = int(imgs.shape[0]*sample)
+    imgs = imgs[:n]
+    labels = labels[:n]
+
     le = preprocessing.LabelEncoder()
-    labels = le.fit_transform(labels)
+    _labels = le.fit_transform(labels)
     classes = le.classes_
-    labels = F.one_hot(torch.from_numpy(labels)).float()
+    labels = F.one_hot(torch.from_numpy(_labels)).float()
 
-    X_train_val, X_test, y_train_val, y_test = train_test_split(imgs, labels, test_size=test_size)
-    X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test_size=test_size)
+    # Create k splits of the dataset
 
-    n = int(X_train.shape[0]*sample)
+    kfold = StratifiedKFold(n_splits=K, shuffle=True, random_state=0)
+    splits = kfold.split(imgs, _labels)
 
-    X_train = X_train[:n]
-    y_train = y_train[:n]
+    train_id_list, test_id_list = [], []
 
-    split_dict = {
-        'train':{'images':X_train.tolist(),'labels':[int(np.argmax(l)) for l in y_train.tolist()]},
-        'val':{'images':X_val.tolist(),'labels':[int(np.argmax(l)) for l in  y_val.tolist()]},
-        'test':{'images':X_test.tolist(),'labels':[int(np.argmax(l)) for l in  y_test.tolist()]},
-    }
-
-    with open(saving_dir.joinpath('splits.json'),'w') as f:
-        json.dump(split_dict,f)
-
-    with open(saving_dir.joinpath('classes.json'),'w') as f:
-        json.dump({'classes':classes.tolist()},f)
+    for fold, (train_ids, test_ids) in enumerate(splits):
+        train_id_list.append(train_ids)
+        test_id_list.append(test_ids)
 
 
-    train_dataset = TrainingDataset(X_train,y_train,transform = train_transform)
-    val_dataset = TrainingDataset(X_val,y_val,transform = test_transform)
-    test_dataset = TrainingDataset(X_test,y_test,transform = test_transform)
+    pred_probs_list, embeddings_list = [], []
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size,collate_fn=my_collate,num_workers=num_workers)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size,collate_fn=my_collate,num_workers=num_workers)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size,collate_fn=my_collate,num_workers=num_workers)
+    for i in range(K):
 
+        if crossvalidation == False and i>0:
+            break
 
-    model = Classifier(
-        output_dim = len(classes), 
-        learning_rate = learning_rate,
-        threshold = threshold
-    )
+        split_dir = saving_dir.joinpath(f'split_{i+1}')
+        split_dir.mkdir(exist_ok = True, parents=True)
 
-    callbacks = [EarlyStopping(monitor="valid_loss",patience=patience, verbose = True)]
+        print(f"\nTraining on fold: {i+1} ...")
 
-    trainer = pl.Trainer(
-        accelerator="auto",
-        max_epochs = max_epochs,
-        log_every_n_steps=100,
-        callbacks = callbacks
-    )
+        # Create train and test sets and corresponding dataloaders
 
-    trainer.fit(model, train_loader, val_loader)
-    trainer.test(dataloaders=test_loader)
-    torch.save(model.state_dict(), saving_dir.joinpath('checkpoint.pth'))
+        X_train_val = imgs[train_id_list[i]]
+        y_train_val = labels[train_id_list[i]]
+
+        # Create validation split
+
+        X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test_size=1.0/K)
+
+        X_test = imgs[test_id_list[i]]
+        y_test = labels[test_id_list[i]]
 
 
-    model.eval()
+        # X_train_val, X_test, y_train_val, y_test = train_test_split(imgs, labels, test_size=test_size)
+        # X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test_size=test_size)
 
-    with open(saving_dir.joinpath('splits.json'),'r') as f:
-        test_split = json.load(f)['test']
+        # n = int(X_train.shape[0]*sample)
 
-    image_arr = np.array(test_split['images'])
-    label_arr = np.array([classes[i] for i in test_split['labels']])
+        # X_train = X_train[:n]
+        # y_train = y_train[:n]
 
-    print(f'evaluating on {image_arr.shape[0]} images')
+        split_dict = {
+            'train':{'images':X_train.tolist(),'labels':[int(np.argmax(l)) for l in y_train.tolist()]},
+            'val':{'images':X_val.tolist(),'labels':[int(np.argmax(l)) for l in  y_val.tolist()]},
+            'test':{'images':X_test.tolist(),'labels':[int(np.argmax(l)) for l in  y_test.tolist()]},
+        }
 
-    inference_dataset = InferenceDataset(image_arr,transform = test_transform)
-    inference_loader = DataLoader(inference_dataset, batch_size=batch_size,collate_fn=my_collate)
+        with open(split_dir.joinpath('splits.json'),'w') as f:
+            json.dump(split_dict,f)
 
-    conf_list = []
-    path_list = []
-    prediction_list = []
-    with torch.no_grad():
-        for paths,batch in inference_loader:
-            outputs = model(batch)
-            prediction_list += [classes[i] for i in torch.argmax(outputs,axis=1)]
-            conf_list.append(outputs)
-            path_list.append(paths)
+        with open(split_dir.joinpath('classes.json'),'w') as f:
+            json.dump({'classes':classes.tolist()},f)
 
-    prediction_arr = np.array(prediction_list)
-    path_list = [list(t) for t in path_list]
-    path_list = [item for sublist in path_list for item in sublist]
 
-    df = pd.DataFrame({
-        'path':path_list,
-        'predictions':prediction_arr.tolist(),
-        'labels':label_arr.tolist(),
-        })
-    df = df.loc[df['predictions'] != df['labels']]
-    df.to_csv(saving_dir.joinpath('misclassifications.csv'),index=False)
+        train_dataset = TrainingDataset(X_train,y_train,transform = train_transform)
+        val_dataset = TrainingDataset(X_val,y_val,transform = test_transform)
+        test_dataset = TrainingDataset(X_test,y_test,transform = test_transform)
 
-    print('Calculating metrics')
+        train_loader = DataLoader(train_dataset, batch_size=batch_size,collate_fn=my_collate,num_workers=num_workers)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size,collate_fn=my_collate,num_workers=num_workers)
+        test_loader = DataLoader(test_dataset, batch_size=batch_size,collate_fn=my_collate,num_workers=num_workers)
 
-    cm = confusion_matrix(label_arr,prediction_arr).tolist()
-    precision = precision_score(label_arr,prediction_arr,average="binary",pos_label="watermark")
-    recall = recall_score(label_arr,prediction_arr,average="binary",pos_label="watermark")
-    accuracy = accuracy_score(label_arr,prediction_arr)
 
-    metrics_dict = {
-        'accuracy':accuracy,
-        'precision':precision,
-        'recall':recall,
-        'cm':cm,
-    }
+        model = Classifier(
+            output_dim = len(classes), 
+            learning_rate = learning_rate,
+            threshold = threshold
+        )
 
-    # plot confusion matrix
-    fig,ax = plt.subplots()
-    df_cm = pd.DataFrame(cm, index = classes,
-                  columns = classes)
-    ax = sn.heatmap(df_cm, annot=True,cmap='Blues', fmt='g')
-    ax.set_xlabel('Actual Values')
-    ax.set_ylabel('Predicted Values')
-    fig.savefig(saving_dir.joinpath('confusion_matrix.jpg'))
+        callbacks = [EarlyStopping(monitor="valid_loss",patience=patience, verbose = True)]
 
-    # save metris in json
-    with open(saving_dir.joinpath('metrics.json'),'w') as f:
-        json.dump(metrics_dict,f)
+        trainer = pl.Trainer(
+            accelerator="auto",
+            max_epochs = max_epochs,
+            log_every_n_steps=100,
+            callbacks = callbacks
+        )
+
+        trainer.fit(model, train_loader, val_loader)
+        trainer.test(dataloaders=test_loader)
+        torch.save(model.state_dict(), split_dir.joinpath('checkpoint.pth'))
+
+
+        model.eval()
+
+        with open(split_dir.joinpath('splits.json'),'r') as f:
+            test_split = json.load(f)['test']
+
+        image_arr = np.array(test_split['images'])
+        label_arr = np.array([classes[i] for i in test_split['labels']])
+
+        print(f'evaluating on {image_arr.shape[0]} images')
+
+        inference_dataset = InferenceDataset(image_arr,transform = test_transform)
+        inference_loader = DataLoader(inference_dataset, batch_size=batch_size,collate_fn=my_collate)
+
+        conf_list = []
+        path_list = []
+        prediction_list = []
+        with torch.no_grad():
+            for paths,batch in inference_loader:
+                outputs = model(batch)
+                prediction_list += [classes[i] for i in torch.argmax(outputs,axis=1)]
+                conf_list.append(outputs)
+                path_list.append(paths)
+
+        prediction_arr = np.array(prediction_list)
+        path_list = [list(t) for t in path_list]
+        path_list = [item for sublist in path_list for item in sublist]
+
+        df = pd.DataFrame({
+            'path':path_list,
+            'predictions':prediction_arr.tolist(),
+            'labels':label_arr.tolist(),
+            })
+        df = df.loc[df['predictions'] != df['labels']]
+        df.to_csv(split_dir.joinpath('misclassifications.csv'),index=False)
+
+        print('Calculating metrics')
+
+        cm = confusion_matrix(label_arr,prediction_arr).tolist()
+        precision = precision_score(label_arr,prediction_arr,average="binary",pos_label="watermark")
+        recall = recall_score(label_arr,prediction_arr,average="binary",pos_label="watermark")
+        accuracy = accuracy_score(label_arr,prediction_arr)
+
+        metrics_dict = {
+            'accuracy':accuracy,
+            'precision':precision,
+            'recall':recall,
+            'cm':cm,
+        }
+
+        # plot confusion matrix
+        fig,ax = plt.subplots()
+        df_cm = pd.DataFrame(cm, index = classes,
+                    columns = classes)
+        ax = sn.heatmap(df_cm, annot=True,cmap='Blues', fmt='g')
+        ax.set_xlabel('Actual Values')
+        ax.set_ylabel('Predicted Values')
+        fig.savefig(split_dir.joinpath('confusion_matrix.jpg'))
+
+        # save metris in json
+        with open(split_dir.joinpath('metrics.json'),'w') as f:
+            json.dump(metrics_dict,f)
+
+
+
+        # Calculate embeddings
+        model = model.to(device)
+
+        # Compute out-of-sample embeddings
+        print("Computing feature embeddings ...")
+        fold_embeddings = compute_embeddings(model, test_loader,device)
+        embeddings_list.append(fold_embeddings)
+
+        print("Computing predicted probabilities ...")
+        # Compute out-of-sample predicted probabilities
+        fold_pred_probs = compute_pred_probs(model, test_loader,device)
+        pred_probs_list.append(fold_pred_probs)
+
+    print("Finished Training")
+
+
+    # Combine embeddings and predicted probabilities from each fold
+    features = torch.vstack(embeddings_list).numpy()
+    features = np.squeeze(features)
+
+    logits = torch.vstack(pred_probs_list)
+    pred_probs = logits.numpy()
+
+    indices = np.hstack(test_id_list)
+
+    imgs = imgs[indices]
+    _labels = _labels[indices]
+    dataset = {'image':imgs,'label':_labels}
+
+    torch.save(features, saving_dir.joinpath('features.pt'))
+    torch.save(dataset, saving_dir.joinpath('dataset.pt'))
+    torch.save(pred_probs, saving_dir.joinpath('pred_probs.pt'))
 
     print("Finished")
 

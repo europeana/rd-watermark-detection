@@ -5,7 +5,7 @@ services:
       stdin_open: true 
       tty: true     
       volumes:
-        - /home/jcejudo/projects/watermark_classification:/storage
+        - ${DATA_DIR}:/storage
         - .:/code
       ports:
         - ${NOTEBOOK_PORT}:${NOTEBOOK_PORT}
@@ -22,8 +22,8 @@ services:
       stdin_open: true 
       tty: true     
       volumes:
-        - /home/jcejudo/projects/watermark_classification:/output
-        - /home/jcejudo/projects/watermark_classification:/label-studio/files
+        - ${DATA_DIR}:/storage
+        - ${DATA_DIR}:/label-studio/files
         - ./mydata:/label-studio/data
         - .:/code
       environment:
@@ -39,7 +39,7 @@ services:
       stdin_open: true 
       tty: true 
       volumes:
-        - /home/jcejudo/projects/watermark_classification:/output
+        - ${DATA_DIR}:/storage
       ports:
         - ${PIXPLOT_PORT}:${PIXPLOT_PORT}
       deploy:

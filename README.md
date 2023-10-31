@@ -1,29 +1,41 @@
 # Detection of watermarks in images
 
+```
 docker-compose up -d
+```
 
 Services:
 machine_learning
+
+```
+docker-compose exec machine_learning bash
+```
+
 label_studio
+
+```
+docker-compose exec label_studio bash
+```
+
+```
+jupyter notebook --port 5051 --ip 0.0.0.0 --no-browser --allow-root
+```
 
 
 ## Data acquisition
 
-docker-compose exec machine_learning bash
-
 ```
 nohup python3 data-ops/data-ops.py harvest_data --datasets_path /storage/data/new_datasets.json --n_per_dataset 200 --saving_path /storage/data/unlabeled.csv --labeled_path /storage/data/labeled_4312.csv &> /storage/results/data_harvesting.out &
-```
 
-```
 nohup python3 data-ops/data-ops.py download --input /storage/data/unlabeled.csv --saving_dir /storage/data/unlabeled &> /storage/results/download_images.out &
 ```
 
 
 ## Model training
 
-to do: add crossvalidation
+to do: 
 include evaluation in training
+add crossvalidation
 merge the three files into a single one
 
 ```
@@ -43,10 +55,6 @@ python3 machine-learning/predict.py --input /output/data/unlabeled --results_pat
 ## Annotate with Label-Studio
 
 Access the container of label studio
-
-```
-docker-compose exec label_studio bash
-```
 
 Start watermark_detection project
 
@@ -69,8 +77,6 @@ moving annotations to labeled and removing from unlabeled images
 ```
 python3 data-ops/data-ops.py move_labeled --sample_dir /output/results/iter_6/sample --labeled_dir /output/data/labeled --labels '/output/results/iter_6/project-1-at-2023-10-31-14-05-97816efa.csv'
 ```
-
-
 parse labeled dataset
 
 to do: include error message if api key not detected
@@ -84,15 +90,16 @@ nohup python3 data-ops/data-ops.py parse_dataset --dataset_path /output/data/lab
 
 ## Fastdup
 
-to do: add script
-
 https://github.com/visual-layer/fastdup
 
 https://visual-layer.readme.io/docs/analyzing-labeled-images
 
-docker-compose exec machine_learning bash
+```
+python3 data-ops/run_fastdup.py --data_dir /storage/data/labeled_4312 --saving_dir /storage/results/fastdup
+```
 
-jupyter notebook --port 5051 --ip 0.0.0.0 --no-browser --allow-root
+Explore the html pages in saving_dir
+
 
 ## Cleanlab
 
@@ -102,28 +109,39 @@ https://github.com/cleanlab/cleanlab
 
 https://docs.cleanlab.ai/stable/tutorials/image.html
 
+First run crossvalidation using the machine_learning.py script
+
+
+Run analysis
+
 
 
 ## Pixplot
 
 to do: use GPU
 
+```
 docker-compose exec pixplot bash
+```
 
 Install pixplot as in https://github.com/YaleDHLab/pix-plot
 
 to do: add arguments and metadata
 
+```
 pixplot --images "/output/results/iter_6/sample/*.jpg"
 
 python -m http.server 5000
-
-
-
+```
 
 # Deployment as API
 
 Flask
+
+to do:
+add script
+add port
+add Flask in requirements
 
 
 

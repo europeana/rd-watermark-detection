@@ -203,6 +203,7 @@ def parse_dataset(**kwargs):
     df.to_csv(output_path,index = False)
     print('Finished')
 
+
 def main(*args,**kwargs):
     arg = args[0]
     if arg == 'harvest_data':
@@ -214,9 +215,6 @@ def main(*args,**kwargs):
     elif arg == 'parse_dataset':
         parse_dataset(**kwargs)
 
-        
-
-
-
+      
 if __name__ == "__main__":
     fire.Fire(main)

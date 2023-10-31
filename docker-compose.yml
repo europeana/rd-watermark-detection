@@ -1,7 +1,7 @@
 version: "3.3"
 services:
   label_studio:
-      build: .
+      image: heartexlabs/label-studio:latest
       stdin_open: true 
       tty: true     
       volumes:
@@ -11,12 +11,20 @@ services:
         - .:/code
       environment:
         - LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED=true
-        - LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=/label-studio/data/
+        - LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=/label-studio/files/
         - LOCAL_FILES_SERVING_ENABLED=true
         - LOCAL_FILES_DOCUMENT_ROOT=/label-studio/data/
 
       ports:
         - 8093:8093
+
+  machine_learning:
+      build: .
+      stdin_open: true 
+      tty: true     
+      volumes:
+        - /home/jcejudo/projects/watermark_classification:/output
+        - .:/code
 
       deploy:
         resources:

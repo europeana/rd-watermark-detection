@@ -2,21 +2,29 @@
 
 docker-compose up -d
 
+Services:
+machine_learning
+label_studio
+
+
 ## Data acquisition
 
 docker-compose exec machine_learning bash
 
+```
+nohup python3 data-ops/data-ops.py harvest_data --datasets_path /storage/data/new_datasets.json --n_per_dataset 200 --saving_path /storage/data/unlabeled.csv --labeled_path /storage/data/labeled_4312.csv &> /storage/results/data_harvesting.out &
+```
 
 ```
-nohup python3 data-ops/harvest_data.py --datasets_path /output/data/new_datasets.json --n_per_dataset 200 --saving_path /output/data/unlabeled.csv --labeled_path /output/data/labeled_4312.csv &> /output/results/data_harvesting.out &
-```
-
-```
-nohup python3 data-ops/download_images.py --input /output/data/unlabeled.csv --saving_dir /output/data/unlabeled &> /output/results/download_images.out &
+nohup python3 data-ops/data-ops.py download --input /storage/data/unlabeled.csv --saving_dir /storage/data/unlabeled &> /storage/results/download_images.out &
 ```
 
 
 ## Model training
+
+to do: add crossvalidation
+include evaluation in training
+merge the three files into a single one
 
 ```
 nohup python3 machine-learning/train.py --batch_size 16 --data_dir /output/data/labeled_4312 --saving_dir /output/results/iter_6 --max_epochs 20 --sample 1.0 &> /output/results/training.out &
@@ -46,7 +54,7 @@ Start watermark_detection project
 label-studio init watermark_detection --label-config /code/labelstudio-config.xml
 ```
 
-Serve interface
+Start interface
 
 ```
 label-studio start watermark_detection -p 8093
@@ -59,21 +67,24 @@ Annotate and export as CSV
 moving annotations to labeled and removing from unlabeled images
 
 ```
-python3 data-ops/move_labeled.py --sample_dir /output/results/iter_6/sample --labeled_dir /output/data/labeled --labels '/output/results/iter_6/project-1-at-2023-10-31-14-05-97816efa.csv'
+python3 data-ops/data-ops.py move_labeled --sample_dir /output/results/iter_6/sample --labeled_dir /output/data/labeled --labels '/output/results/iter_6/project-1-at-2023-10-31-14-05-97816efa.csv'
 ```
+
 
 parse labeled dataset
 
 to do: include error message if api key not detected
 
 ```
-nohup python3 data-ops/parse_dataset.py --dataset_path /output/data/labeled --output_path /output/data/labeled.csv &> /output/results/parsing_labeled.out &
+nohup python3 data-ops/data-ops.py parse_dataset --dataset_path /output/data/labeled --output_path /output/data/labeled.csv &> /output/results/parsing_labeled.out &
 ```
 
 
 # Dataset curation
 
 ## Fastdup
+
+to do: add script
 
 https://github.com/visual-layer/fastdup
 
@@ -84,6 +95,8 @@ docker-compose exec machine_learning bash
 jupyter notebook --port 5051 --ip 0.0.0.0 --no-browser --allow-root
 
 ## Cleanlab
+
+to do: add script for analysis 
 
 https://github.com/cleanlab/cleanlab
 
@@ -98,6 +111,8 @@ to do: use GPU
 docker-compose exec pixplot bash
 
 Install pixplot as in https://github.com/YaleDHLab/pix-plot
+
+to do: add arguments and metadata
 
 pixplot --images "/output/results/iter_6/sample/*.jpg"
 

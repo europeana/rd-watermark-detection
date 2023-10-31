@@ -5,11 +5,10 @@ services:
       stdin_open: true 
       tty: true     
       volumes:
-        - /home/jcejudo/projects/watermark_classification:/output
+        - /home/jcejudo/projects/watermark_classification:/storage
         - .:/code
       ports:
-        - 5051:5051
-
+        - ${NOTEBOOK_PORT}:${NOTEBOOK_PORT}
       deploy:
         resources:
           reservations:
@@ -32,9 +31,8 @@ services:
         - LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=/label-studio/files/
         - LOCAL_FILES_SERVING_ENABLED=true
         - LOCAL_FILES_DOCUMENT_ROOT=/label-studio/data/
-
       ports:
-        - 8093:8093
+        - ${LABELSTUDIO_PORT}:${LABELSTUDIO_PORT}
 
   pixplot:
       image: conda/miniconda3-centos7
@@ -43,7 +41,7 @@ services:
       volumes:
         - /home/jcejudo/projects/watermark_classification:/output
       ports:
-        - 5000:5000
+        - ${PIXPLOT_PORT}:${PIXPLOT_PORT}
       deploy:
         resources:
           reservations:

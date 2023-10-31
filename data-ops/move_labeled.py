@@ -4,7 +4,6 @@ from pathlib import Path
 import pandas as pd
 from shutil import copyfile
 import os
-import codecs
 
 def main(**kwargs):
 

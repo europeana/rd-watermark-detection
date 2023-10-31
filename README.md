@@ -34,12 +34,11 @@ nohup python3 data-ops/data-ops.py download --input /storage/data/unlabeled.csv 
 ## Model training
 
 to do: 
-include evaluation in training
 add crossvalidation
 merge the three files into a single one
 
 ```
-nohup python3 machine-learning/train.py --batch_size 16 --data_dir /output/data/labeled_4312 --saving_dir /output/results/iter_6 --max_epochs 20 --sample 1.0 &> /output/results/training.out &
+nohup python3 machine-learning/machine-learning.py train --batch_size 16 --data_dir /storage/data/labeled_4312 --saving_dir /storage/results/iter_6 --max_epochs 1 --sample 0.1 &> /storage/results/training.out &
 ```
 
 ```
@@ -49,7 +48,7 @@ python3 machine-learning/evaluate.py --results_path /output/results/iter_6 --sav
 ## Predict
 
 ```
-python3 machine-learning/predict.py --input /output/data/unlabeled --results_path /output/results/iter_6 --metadata /output/data/unlabeled.csv --saving_path /output/results/iter_6/predictions.csv --mode uncertain --n_predictions 800 --sample 1.0 --batch_size 64 --sample_path /output/results/iter_6/sample
+python3 machine-learning/machine-learning.py predict --input /storage/data/unlabeled --results_path /storage/results/iter_6 --metadata /storage/data/unlabeled.csv --saving_path /storage/results/iter_6/predictions.csv --mode uncertain --n_predictions 800 --sample 1.0 --batch_size 64 --sample_path /storage/results/iter_6/sample
 ```
 
 ## Annotate with Label-Studio

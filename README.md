@@ -2,6 +2,9 @@
 
 ## Setting up environment
 
+
+https://github.com/HumanSignal/label-studio/issues/3987
+
 Create docker image
 
 ```
@@ -10,8 +13,16 @@ docker build . -t watermark_image
 
 Run docker container
 
+-v `pwd`/mydata:/label-studio/data
+
+docker run --gpus all --env LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED=true --env LOCAL_FILES_SERVING_ENABLED=true --env LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=/label-studio/files --env LOCAL_FILES_DOCUMENT_ROOT=/label-studio/files -p 8092:8092 -v /home/jcejudo/projects/watermark_classification:/output -v /home/jcejudo/projects/watermark_classification:/label-studio/files -v $(pwd)/mydata:/label-studio/data -v $(pwd):/code -it watermark_image:latest
+
+label-studio -p 8092
+
+docker run --gpus all -p 8092:8092 -v /home/jcejudo/projects/watermark_classification:/output -v /home/jcejudo/projects/watermark_classification:/label-studio/files -v $(pwd)/mydata:/label-studio/data -v $(pwd):/code -it watermark_image:latest
+
 ```
-docker run --gpus all -p 8090:8090 -v /home/jcejudo/projects/watermark_classification:/output -v $(pwd):/code -it watermark_image:latest
+docker run --gpus all -p 8091:8090 -v /home/jcejudo/projects/watermark_classification:/output -v $(pwd):/code -it watermark_image:latest
 ```
 
 
@@ -41,13 +52,16 @@ python3 machine-learning/evaluate.py --results_path /output/results/iter_6 --sav
 ## Predict
 
 ```
-python3 machine-learning/predict.py --input /output/data/unlabeled --results_path /output/results/iter_6 --metadata /output/data/unlabeled.csv --saving_path /output/results/iter_6/predictions.csv --mode uncertain --n_predictions 700 --sample 1.0 --batch_size 64
+python3 machine-learning/predict.py --input /output/data/unlabeled --results_path /output/results/iter_6 --metadata /output/data/unlabeled.csv --saving_path /output/results/iter_6/predictions.csv --mode uncertain --n_predictions 800 --sample 1.0 --batch_size 64
 ```
 
 ## Annotate with Label-Studio
 
+
+docker run -it -p 9002:9002 -v $(pwd)/mydata:/label-studio/data --env LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED=true --env LOCAL_FILES_SERVING_ENABLED=true --env LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=/label-studio/files --env LOCAL_FILES_DOCUMENT_ROOT=/label-studio/files -v $(pwd)/../projects/watermark_classification/data/unlabeled:/label-studio/files heartexlabs/label-studio:latest label-studio
+
 ```
-label-studio -p 8090
+label-studio -p 8091
 ```
 
 
@@ -59,7 +73,7 @@ moving annotations to labeled and removing from unlabeled images
 to do
 
 ```
-python data-ops/move_labeled.py --unlabeled_dir /home/jcejudo/projects/watermark_classification/data/unlabeled --labeled_dir /home/jcejudo/projects/watermark_classification/data/labeled --labels '/home/jcejudo/projects/watermark_classification/results/iter_5/project-15-at-2023-10-09-18-59-31d43bb2.csv'
+python3 data-ops/move_labeled.py --unlabeled_dir /output/data/unlabeled --labeled_dir /output/data/labeled --labels '/output/results/iter_6/project-15-at-2023-10-09-18-59-31d43bb2.csv'
 ```
 
 

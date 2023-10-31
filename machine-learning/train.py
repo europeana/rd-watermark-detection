@@ -120,7 +120,7 @@ def main(**kwargs):
         transforms.Resize((256, 256)),
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomVerticalFlip(p=0.5),
-        torchvision.transforms.Grayscale(num_output_channels=3),
+        transforms.RandomApply([transforms.Grayscale(num_output_channels=3)], p=0.25),
         #transforms.RandomRotation(degrees=(0, 45)),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),

@@ -1,0 +1,28 @@
+version: "3.3"
+services:
+  label_studio:
+      build: .
+      stdin_open: true 
+      tty: true     
+      volumes:
+        - /home/jcejudo/projects/watermark_classification:/output
+        - /home/jcejudo/projects/watermark_classification:/label-studio/files
+        - ./mydata:/label-studio/data
+        - .:/code
+      environment:
+        - DJANGO_DB=default
+        - LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED=true
+        - LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=/label-studio/data/
+        - LOCAL_FILES_SERVING_ENABLED=true
+        - LOCAL_FILES_DOCUMENT_ROOT=/label-studio/data/
+
+      ports:
+        - 8093
+
+      deploy:
+        resources:
+          reservations:
+            devices:
+              - driver: nvidia
+                count: 1
+                capabilities: [gpu]

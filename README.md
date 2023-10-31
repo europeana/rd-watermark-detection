@@ -22,7 +22,7 @@ nohup python3 data-ops/download_images.py --input /output/data/unlabeled.csv --s
 ## Model training
 
 ```
-nohup python3 machine-learning/train.py --batch_size 16 --data_dir /output/data/labeled_4312 --saving_dir /output/results/iter_6 --max_epochs 20 --sample 1.0 &> /output/results/training.out &
+nohup python3 machine-learning/train.py --batch_size 16 --data_dir /output/data/labeled_4312 --saving_dir /output/results/iter_6 --max_epochs 20 --sample 0.1 &> /output/results/training.out &
 ```
 
 ```
@@ -72,6 +72,49 @@ to do: include error message if api key not detected
 ```
 nohup python3 data-ops/parse_dataset.py --dataset_path /output/data/labeled --output_path /output/data/labeled.csv &> /output/results/parsing_labeled.out &
 ```
+
+
+# Dataset curation
+
+add ports for jupyter notebooks to docker compose
+
+
+https://visual-layer.readme.io/docs/analyzing-labeled-images
+
+https://github.com/visual-layer/fastdup
+
+
+
+
+to do: add cleanlab to requirements.txt
+
+
+
+add jupyter notebook
+
+
+https://github.com/cleanlab/cleanlab
+
+
+
+## Pixplot
+
+to do: use GPU
+
+docker-compose exec pixplot bash
+
+Install pixplot as in https://github.com/YaleDHLab/pix-plot
+
+pixplot --images "/output/results/iter_6/sample/*.jpg"
+
+python -m http.server 5000
+
+
+
+
+
+
+
 
 
 # Legacy

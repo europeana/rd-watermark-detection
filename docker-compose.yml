@@ -1,5 +1,21 @@
 version: "3.3"
 services:
+  pixplot:
+      image: conda/miniconda3-centos7
+      stdin_open: true 
+      tty: true 
+      volumes:
+        - /home/jcejudo/projects/watermark_classification:/output
+      ports:
+        - 5000:5000
+      deploy:
+        resources:
+          reservations:
+            devices:
+              - driver: nvidia
+                count: 1
+                capabilities: [gpu]
+
   label_studio:
       image: heartexlabs/label-studio:latest
       stdin_open: true 
@@ -25,6 +41,8 @@ services:
       volumes:
         - /home/jcejudo/projects/watermark_classification:/output
         - .:/code
+      ports:
+        - 5051:5051
 
       deploy:
         resources:

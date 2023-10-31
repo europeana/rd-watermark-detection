@@ -1,0 +1,55 @@
+version: "3.3"
+services:
+  machine_learning:
+      build: .
+      stdin_open: true 
+      tty: true     
+      volumes:
+        - /home/jcejudo/projects/watermark_classification:/storage
+        - .:/code
+      ports:
+        - ${NOTEBOOK_PORT}:${NOTEBOOK_PORT}
+      deploy:
+        resources:
+          reservations:
+            devices:
+              - driver: nvidia
+                count: 1
+                capabilities: [gpu]
+
+  label_studio:
+      image: heartexlabs/label-studio:latest
+      stdin_open: true 
+      tty: true     
+      volumes:
+        - /home/jcejudo/projects/watermark_classification:/output
+        - /home/jcejudo/projects/watermark_classification:/label-studio/files
+        - ./mydata:/label-studio/data
+        - .:/code
+      environment:
+        - LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED=true
+        - LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=/label-studio/files/
+        - LOCAL_FILES_SERVING_ENABLED=true
+        - LOCAL_FILES_DOCUMENT_ROOT=/label-studio/data/
+      ports:
+        - ${LABELSTUDIO_PORT}:${LABELSTUDIO_PORT}
+
+  pixplot:
+      image: conda/miniconda3-centos7
+      stdin_open: true 
+      tty: true 
+      volumes:
+        - /home/jcejudo/projects/watermark_classification:/output
+      ports:
+        - ${PIXPLOT_PORT}:${PIXPLOT_PORT}
+      deploy:
+        resources:
+          reservations:
+            devices:
+              - driver: nvidia
+                count: 1
+                capabilities: [gpu]
+
+
+
+

@@ -1,0 +1,4 @@
+DATA_DIR="/home/jcejudo/projects/watermark_classification"
+NOTEBOOK_PORT=5051
+LABELSTUDIO_PORT=8093
+PIXPLOT_PORT=5000

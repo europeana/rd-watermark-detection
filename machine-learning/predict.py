@@ -1,6 +1,7 @@
 import os
 import sys
 import fire
+from shutil import copyfile
 
 from pathlib import Path
 import numpy as np
@@ -59,6 +60,7 @@ def main(**kwargs):
     n_predictions = kwargs.get('n_predictions',200)
 
     mode = kwargs.get('mode','uncertain')
+    sample_path = kwargs.get('sample_path')
 
     meta_df = pd.read_csv(metadata)
 
@@ -140,6 +142,20 @@ def main(**kwargs):
     df = df.head(n_predictions) 
     df.to_csv(saving_path,index=False)
     print(df.shape)
+
+    # saving sample
+
+    sample_path = Path(sample_path)
+    sample_path.mkdir(parents = True, exist_ok = True)
+
+    for path in df['path'].values:
+        copyfile(path, sample_path.joinpath(Path(path).name))
+
+    print('Finished')
+
+
+        
+
 
 
 if __name__ == "__main__":

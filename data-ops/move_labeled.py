@@ -4,12 +4,15 @@ from pathlib import Path
 import pandas as pd
 from shutil import copyfile
 import os
+import codecs
 
 def main(**kwargs):
 
     labeled_dir = kwargs.get('labeled_dir')
-    unlabeled_dir = kwargs.get('unlabeled_dir')
+    sample_dir = kwargs.get('sample_dir')
     labels = kwargs.get('labels')
+
+    sample_dir = Path(sample_dir)
 
     labeled_dir = Path(labeled_dir)
     labeled_dir.mkdir(parents = True, exist_ok = True)
@@ -29,12 +32,15 @@ def main(**kwargs):
     num = 0
     for i,row in df.iterrows():
 
-        if not Path(row['path']).is_file():
+        name = Path(row['image']).name.replace('%5B','[').replace('%5D',']')
+        path = sample_dir.joinpath(name)
+  
+        if not Path(path).is_file():
             continue
 
-        dest_folder = labeled_dir.joinpath(row['choice'],Path(row['path']).name)
-        copyfile(row['path'],dest_folder)
-        os.remove(row['path'])
+        dest_folder = labeled_dir.joinpath(row['choice'],Path(path).name)
+        copyfile(path,dest_folder)
+        os.remove(path)
         num += 1
 
     print(f'Total number of images tranferred: {num}')

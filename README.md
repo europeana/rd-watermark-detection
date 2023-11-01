@@ -3,8 +3,6 @@
 Intro to the project
 
 
-
-
 ## Setting up environment
 
 .env file with environment variables: ports and paths
@@ -54,8 +52,6 @@ nohup python3 scripts/data_ops.py download \
 
 
 ## Model training
-
-
 
 ```
 nohup python3 scripts/machine_learning.py train \
@@ -146,7 +142,7 @@ nohup python3 scripts/hyperparameter_tuning.py \
  --data_dir /storage/data/labeled_4312 \
  --saving_dir /storage/results/hyperparameter_tuning \
  --num_epochs 1 \
- --num_samples 3 \
+ --num_samples 5 \
  &> /storage/results/hyperparameter_tuning.out &
 ```
 
@@ -177,8 +173,6 @@ Explore the html pages in saving_dir
 
 
 ## Cleanlab
-
-to do: add script for analysis 
 
 https://github.com/cleanlab/cleanlab
 

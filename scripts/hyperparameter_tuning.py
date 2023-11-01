@@ -9,6 +9,8 @@ from torchmetrics import Accuracy
 from torch.utils.data import DataLoader, random_split
 from torchvision.datasets import MNIST
 from torchvision import transforms
+import matplotlib.pyplot as plt
+
 
 from ray.train.lightning import (
     RayDDPStrategy,
@@ -233,6 +235,23 @@ def main(*args,**kwargs):
     results = tune_mnist_asha(num_samples=num_samples)
     df = results.get_dataframe()
     df.to_csv(saving_dir.joinpath('hyperparameter_results.csv'))
+
+    x = df['config/train_loop_config/batch_size'].values
+    y = df['config/train_loop_config/lr'].values
+
+    fig, ax = plt.subplots()
+    z = df['ptl/val_loss'].values
+    sc = ax.scatter(x, y, c=z, alpha=0.5)
+    fig.colorbar(sc)
+    ax.set_title('Loss')
+    fig.savefig(saving_dir.joinpath('loss_scatter.jpg'))
+
+    fig, ax = plt.subplots()
+    z = df['ptl/val_accuracy'].values
+    sc = plt.scatter(x, y, c=z, alpha=0.5)
+    fig.colorbar(sc)
+    ax.set_title('Accuracy')
+    fig.savefig(saving_dir.joinpath('accuracy_scatter.jpg'))
     print('Finished')
 
       

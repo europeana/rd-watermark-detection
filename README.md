@@ -42,14 +42,25 @@ nohup python3 scripts/data-ops.py download \
 
 ## Model training
 
+to do:
+tensorboard
+hyperparameter tuning
+automatic image augmentation
+XAI
+
+https://lightning.ai/docs/pytorch/stable/extensions/logging.html
+https://github.com/jacobgil/pytorch-grad-cam
+https://pytorch.org/tutorials/beginner/hyperparameter_tuning_tutorial.html
+https://albumentations.ai/docs/autoalbument/
+
 ```
 nohup python3 scripts/machine-learning.py train \
  --batch_size 16 \
  --data_dir /storage/data/labeled_4312 \
- --saving_dir /storage/results/iter_6 \
- --max_epochs 1 \
+ --saving_dir /storage/results/iter_7 \
+ --max_epochs 2 \
  --sample 0.1 \
- --crossvalidation True \
+ --crossvalidation False \
  &> /storage/results/training.out &
 ```
 
@@ -113,7 +124,9 @@ https://github.com/visual-layer/fastdup
 https://visual-layer.readme.io/docs/analyzing-labeled-images
 
 ```
-python3 scripts/dataset-curation.py fastdup --data_dir /storage/data/labeled_4312 --saving_dir /storage/results/fastdup
+python3 scripts/dataset-curation.py fastdup \
+ --data_dir /storage/data/labeled_4312 \
+ --saving_dir /storage/results/fastdup
 ```
 
 Explore the html pages in saving_dir
@@ -132,79 +145,6 @@ First run crossvalidation using the machine_learning.py script with crossvalidat
 ```
 python3 scripts/dataset-curation.py cleanlab --results_dir /storage/results/iter_6/ 
 ```
-
-
-
-
-## Pixplot
-
-to do: use GPU
-
-```
-docker-compose exec pixplot bash
-```
-
-Install pixplot as in https://github.com/YaleDHLab/pix-plot
-
-to do: add arguments and metadata
-
-```
-pixplot --images "/storage/results/iter_6/sample/*.jpg"
-
-python -m http.server 5000
-```
-
-# Deployment as API
-
-Flask
-
-to do:
-add script
-add port
-add Flask in requirements
-
-
-
-
-
-
-# Legacy
-
-
-https://github.com/HumanSignal/label-studio/issues/3987
-
-Create docker image
-
-```
-docker build . -t watermark_image
-```
-
-Run docker container
-
-docker run --gpus all --env LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED=true --env LOCAL_FILES_SERVING_ENABLED=true --env LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=/label-studio/files --env LOCAL_FILES_DOCUMENT_ROOT=/label-studio/files -p 8092:8092 -v /home/jcejudo/projects/watermark_classification:/output -v /home/jcejudo/projects/watermark_classification:/label-studio/files -v $(pwd)/mydata:/label-studio/data -v $(pwd):/code -it watermark_image:latest
-
-docker run --gpus all -p 8092:8092 -v /home/jcejudo/projects/watermark_classification:/output -v /home/jcejudo/projects/watermark_classification:/label-studio/files -v $(pwd)/mydata:/label-studio/data -v $(pwd):/code -it watermark_image:latest
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

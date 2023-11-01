@@ -4,3 +4,4 @@ machine-learning/__pycache__*
 .ipynb_checkpoints*
 core
 mydata*
+*tb_logs*

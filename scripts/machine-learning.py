@@ -26,6 +26,10 @@ from PIL import Image
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
+from pytorch_lightning.loggers import TensorBoardLogger
+
+
+
 def fpath2id(x):
     return Path(x).with_suffix('').name.replace('[ph]','/')
 
@@ -198,9 +202,9 @@ def train(**kwargs):
     imgs = np.array([str(p) for p in data_dir.rglob("*/*")])
     labels = np.array([Path(p).parent.name for p in imgs])
 
-    n = int(imgs.shape[0]*sample)
-    imgs = imgs[:n]
-    labels = labels[:n]
+    # n = int(imgs.shape[0]*sample)
+    # imgs = imgs[:n]
+    # labels = labels[:n]
 
     le = preprocessing.LabelEncoder()
     _labels = le.fit_transform(labels)
@@ -243,14 +247,9 @@ def train(**kwargs):
         X_test = imgs[test_id_list[i]]
         y_test = labels[test_id_list[i]]
 
-
-        # X_train_val, X_test, y_train_val, y_test = train_test_split(imgs, labels, test_size=test_size)
-        # X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test_size=test_size)
-
-        # n = int(X_train.shape[0]*sample)
-
-        # X_train = X_train[:n]
-        # y_train = y_train[:n]
+        n = int(X_train.shape[0]*sample)
+        X_train = X_train[:n]
+        y_train = y_train[:n]
 
         split_dict = {
             'train':{'images':X_train.tolist(),'labels':[int(np.argmax(l)) for l in y_train.tolist()]},
@@ -282,17 +281,22 @@ def train(**kwargs):
 
         callbacks = [EarlyStopping(monitor="valid_loss",patience=patience, verbose = True)]
 
+        logger = TensorBoardLogger(name="tensorboard_logs", save_dir = split_dir)
+
         trainer = pl.Trainer(
             accelerator="auto",
             max_epochs = max_epochs,
             log_every_n_steps=100,
-            callbacks = callbacks
+            callbacks = callbacks,
+            logger = logger
         )
 
         trainer.fit(model, train_loader, val_loader)
         trainer.test(dataloaders=test_loader)
         torch.save(model.state_dict(), split_dir.joinpath('checkpoint.pth'))
 
+
+        # Evaluation
 
         model.eval()
 
@@ -498,6 +502,8 @@ def predict(**kwargs):
         copyfile(path, sample_path.joinpath(Path(path).name))
 
     print('Finished')
+
+    
 
 def main(*args,**kwargs):
     arg = args[0]

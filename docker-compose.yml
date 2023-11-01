@@ -9,6 +9,7 @@ services:
         - .:/code
       ports:
         - ${NOTEBOOK_PORT}:${NOTEBOOK_PORT}
+        - ${TENSORBOARD_PORT}:${TENSORBOARD_PORT}
       deploy:
         resources:
           reservations:
@@ -34,21 +35,7 @@ services:
       ports:
         - ${LABELSTUDIO_PORT}:${LABELSTUDIO_PORT}
 
-  pixplot:
-      image: conda/miniconda3-centos7
-      stdin_open: true 
-      tty: true 
-      volumes:
-        - ${DATA_DIR}:/storage
-      ports:
-        - ${PIXPLOT_PORT}:${PIXPLOT_PORT}
-      deploy:
-        resources:
-          reservations:
-            devices:
-              - driver: nvidia
-                count: 1
-                capabilities: [gpu]
+
 
 
 

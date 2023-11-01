@@ -43,7 +43,6 @@ nohup python3 scripts/data-ops.py download \
 ## Model training
 
 to do:
-tensorboard
 hyperparameter tuning
 automatic image augmentation
 XAI
@@ -63,6 +62,13 @@ nohup python3 scripts/machine-learning.py train \
  --crossvalidation False \
  &> /storage/results/training.out &
 ```
+
+```
+tensorboard --port 6006 --host 0.0.0.0 --logdir=/storage/results/iter_7/split_1/tensorboard_logs/
+```
+
+
+
 
 ## Predict
 

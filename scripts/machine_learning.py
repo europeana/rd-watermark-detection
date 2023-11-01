@@ -17,6 +17,10 @@ import pandas as pd
 from sklearn.metrics import confusion_matrix, precision_score,accuracy_score, recall_score
 import matplotlib.pyplot as plt
 
+from pytorch_grad_cam import GradCAM
+from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
+from pytorch_grad_cam.utils.image import show_cam_on_image
+
 
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
@@ -360,10 +364,59 @@ def train(**kwargs):
         with open(split_dir.joinpath('metrics.json'),'w') as f:
             json.dump(metrics_dict,f)
 
+        model = model.to(device)
+
+        # XAI
+
+        N_XAI = 32
+
+        # make directory for XAI images
+        XAI_dir = split_dir.joinpath('XAI')
+        XAI_dir.mkdir(exist_ok = True, parents = True)
+
+        model.eval()
+
+
+        inference_dataset = InferenceDataset(image_arr,transform = test_transform)
+        inference_loader = DataLoader(inference_dataset, batch_size=N_XAI,collate_fn=my_collate)
+
+        paths, input_tensor = next(iter(inference_loader))
+
+        model = model.to(device)
+        input_tensor = input_tensor.to(device)
+        pred_confs = model(input_tensor)
+        pred_labels = torch.argmax(pred_confs,1)
+
+        target_layers = [model.model.layer4[-1]]
+        cam = GradCAM(model=model, target_layers=target_layers, use_cuda=True)
+        targets = [ClassifierOutputTarget(l) for l in pred_labels]
+        grayscale_cam = cam(input_tensor=input_tensor, targets=targets)
+
+        for k in range(batch_size):
+            pred_idx = pred_labels[k].item()
+            pred_label = classes[pred_idx]
+            pred_conf = round(pred_confs[k][pred_idx].item(),3)
+            path = paths[k]
+            
+            rgb_img = Image.open(path).convert("RGB")
+            rgb_img = transforms.Resize((256, 256))(rgb_img)
+            
+            visualization = show_cam_on_image(np.float32(rgb_img)/255, grayscale_cam[k,:], use_rgb=True)
+
+            fig,ax = plt.subplots(1,2,figsize = (10,5))
+            ax[0].imshow(rgb_img)
+            ax[0].axis("off")
+            ax[1].imshow(visualization)
+            ax[1].axis("off")
+
+            fig.suptitle(f'pred: {pred_label} {pred_conf}', fontsize=16)
+            plt.savefig(XAI_dir.joinpath(Path(path).name))
+
+
+
 
 
         # Calculate embeddings
-        model = model.to(device)
 
         # Compute out-of-sample embeddings
         print("Computing feature embeddings ...")

@@ -58,16 +58,14 @@ nohup python3 scripts/data-ops.py download \
 to do:
 hyperparameter tuning
 automatic image augmentation
-XAI
 
-https://github.com/jacobgil/pytorch-grad-cam
 https://pytorch.org/tutorials/beginner/hyperparameter_tuning_tutorial.html
 https://docs.ray.io/en/latest/ray-overview/installation.html#docker-source-images
 https://albumentations.ai/docs/autoalbument/
 https://albumentations.ai/docs/autoalbument/docker/
 
 ```
-nohup python3 scripts/machine-learning.py train \
+nohup python3 scripts/machine_learning.py train \
  --batch_size 16 \
  --data_dir /storage/data/labeled_4312 \
  --saving_dir /storage/results/iter_7 \
@@ -81,6 +79,7 @@ nohup python3 scripts/machine-learning.py train \
 tensorboard --port 6006 --host 0.0.0.0 --logdir=/storage/results/iter_7/split_1/tensorboard_logs/
 ```
 
+https://github.com/jacobgil/pytorch-grad-cam
 
 
 

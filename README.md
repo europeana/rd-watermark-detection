@@ -1,5 +1,14 @@
 # Detection of watermarks in images
 
+Intro to the project
+
+
+
+
+## Setting up environment
+
+.env file with environment variables: ports and paths
+
 ```
 docker-compose up -d
 ```
@@ -24,6 +33,10 @@ jupyter notebook --port 5051 --ip 0.0.0.0 --no-browser --allow-root
 
 ## Data acquisition
 
+Obtain data
+
+Equal amount of images with and without watermarks
+
 ```
 nohup python3 scripts/data-ops.py harvest_data \
  --datasets_path /storage/data/new_datasets.json \
@@ -47,10 +60,11 @@ hyperparameter tuning
 automatic image augmentation
 XAI
 
-https://lightning.ai/docs/pytorch/stable/extensions/logging.html
 https://github.com/jacobgil/pytorch-grad-cam
 https://pytorch.org/tutorials/beginner/hyperparameter_tuning_tutorial.html
+https://docs.ray.io/en/latest/ray-overview/installation.html#docker-source-images
 https://albumentations.ai/docs/autoalbument/
+https://albumentations.ai/docs/autoalbument/docker/
 
 ```
 nohup python3 scripts/machine-learning.py train \
@@ -71,6 +85,8 @@ tensorboard --port 6006 --host 0.0.0.0 --logdir=/storage/results/iter_7/split_1/
 
 
 ## Predict
+
+to do: replace sample path by saving path
 
 ```
 python3 scripts/machine-learning.py predict \

@@ -296,7 +296,8 @@ def train(**kwargs):
         )
 
         trainer.fit(model, train_loader, val_loader)
-        trainer.test(dataloaders=test_loader)
+        test_metrics = trainer.test(dataloaders=test_loader)
+        print(test_metrics)
         torch.save(model.state_dict(), split_dir.joinpath('checkpoint.pth'))
 
 
@@ -412,10 +413,6 @@ def train(**kwargs):
             fig.suptitle(f'pred: {pred_label} {pred_conf}', fontsize=16)
             plt.savefig(XAI_dir.joinpath(Path(path).name))
 
-
-
-
-
         # Calculate embeddings
 
         # Compute out-of-sample embeddings
@@ -429,7 +426,6 @@ def train(**kwargs):
         pred_probs_list.append(fold_pred_probs)
 
     print("Finished Training")
-
 
     # Combine embeddings and predicted probabilities from each fold
     features = torch.vstack(embeddings_list).numpy()

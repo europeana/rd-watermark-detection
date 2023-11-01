@@ -38,14 +38,14 @@ Obtain data
 Equal amount of images with and without watermarks
 
 ```
-nohup python3 scripts/data-ops.py harvest_data \
+nohup python3 scripts/data_ops.py harvest_data \
  --datasets_path /storage/data/new_datasets.json \
  --n_per_dataset 200 \
  --saving_path /storage/data/unlabeled.csv \
  --labeled_path /storage/data/labeled_4312.csv \
  &> /storage/results/data_harvesting.out &
 
-nohup python3 scripts/data-ops.py download \
+nohup python3 scripts/data_ops.py download \
  --input /storage/data/unlabeled.csv \
  --saving_dir /storage/data/unlabeled \
  &> /storage/results/download_images.out &
@@ -55,21 +55,14 @@ nohup python3 scripts/data-ops.py download \
 
 ## Model training
 
-to do:
-hyperparameter tuning
-automatic image augmentation
 
-https://pytorch.org/tutorials/beginner/hyperparameter_tuning_tutorial.html
-https://docs.ray.io/en/latest/ray-overview/installation.html#docker-source-images
-https://albumentations.ai/docs/autoalbument/
-https://albumentations.ai/docs/autoalbument/docker/
 
 ```
 nohup python3 scripts/machine_learning.py train \
  --batch_size 16 \
  --data_dir /storage/data/labeled_4312 \
  --saving_dir /storage/results/iter_7 \
- --max_epochs 2 \
+ --max_epochs 1 \
  --sample 0.1 \
  --crossvalidation False \
  &> /storage/results/training.out &
@@ -83,12 +76,14 @@ https://github.com/jacobgil/pytorch-grad-cam
 
 
 
+
+
 ## Predict
 
 to do: replace sample path by saving path
 
 ```
-python3 scripts/machine-learning.py predict \
+python3 scripts/machine_learning.py predict \
  --input /storage/data/unlabeled \
  --results_path /storage/results/iter_6 \
  --metadata /storage/data/unlabeled.csv \
@@ -119,7 +114,7 @@ Annotate and export as CSV
 moving annotations to labeled and removing from unlabeled images
 
 ```
-python3 scripts/data-ops.py move_labeled \
+python3 scripts/data_ops.py move_labeled \
  --sample_dir /storage/results/iter_6/sample \
  --labeled_dir /storage/data/labeled \
  --labels '/storage/results/iter_6/project-1-at-2023-10-31-14-05-97816efa.csv'
@@ -129,11 +124,39 @@ parse labeled dataset
 to do: include error message if api key not detected
 
 ```
-nohup python3 scripts/data-ops.py parse_dataset \
+nohup python3 scripts/data_ops.py parse_dataset \
  --dataset_path /storage/data/labeled \
  --output_path /storage/data/labeled.csv \
  &> /storage/results/parsing_labeled.out &
 ```
+
+## Hyperparameter tuning
+
+hyperparameter tuning
+
+https://docs.ray.io/en/latest/tune/examples/tune-pytorch-lightning.html
+https://docs.ray.io/en/latest/train/examples/lightning/lightning_mnist_example.html#lightning-mnist-example
+
+https://pytorch.org/tutorials/beginner/hyperparameter_tuning_tutorial.html
+https://docs.ray.io/en/latest/ray-overview/installation.html#docker-source-images
+
+
+```
+nohup python3 scripts/hyperparameter_tuning.py \
+ --data_dir /storage/data/labeled_4312 \
+ --saving_dir /storage/results/hyperparameter_tuning \
+ --num_epochs 1 \
+ --num_samples 3 \
+ &> /storage/results/hyperparameter_tuning.out &
+```
+
+
+automatic image augmentation
+
+https://albumentations.ai/docs/autoalbument/
+https://albumentations.ai/docs/autoalbument/docker/
+
+
 
 
 # Dataset curation
@@ -145,7 +168,7 @@ https://github.com/visual-layer/fastdup
 https://visual-layer.readme.io/docs/analyzing-labeled-images
 
 ```
-python3 scripts/dataset-curation.py fastdup \
+python3 scripts/dataset_curation.py fastdup \
  --data_dir /storage/data/labeled_4312 \
  --saving_dir /storage/results/fastdup
 ```
@@ -164,7 +187,7 @@ https://docs.cleanlab.ai/stable/tutorials/image.html
 First run crossvalidation using the machine_learning.py script with crossvalidation=True
 
 ```
-python3 scripts/dataset-curation.py cleanlab --results_dir /storage/results/iter_6/ 
+python3 scripts/dataset_curation.py cleanlab --results_dir /storage/results/iter_6/ 
 ```
 
 

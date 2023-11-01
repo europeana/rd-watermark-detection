@@ -5,3 +5,4 @@ machine-learning/__pycache__*
 core
 mydata*
 *tb_logs*
+*__pycache__*

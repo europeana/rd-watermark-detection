@@ -19,13 +19,14 @@ services:
                 capabilities: [gpu]
 
   label_studio:
-      image: heartexlabs/label-studio:latest
+      image: heartexlabs/label-studio:1.9.1
       stdin_open: true 
-      tty: true     
+      tty: true
+      user: root 
       volumes:
         - ${DATA_DIR}:/storage
         - ${DATA_DIR}:/label-studio/files
-        - ./mydata:/label-studio/data
+        - ${LABELSTUDIO_DIR}:/label-studio/data
         - .:/code
       environment:
         - LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED=true

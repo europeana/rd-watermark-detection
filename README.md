@@ -72,47 +72,55 @@ https://github.com/jacobgil/pytorch-grad-cam
 
 
 
-
-
 ## Predict
 
-to do: replace sample path by saving path
 
 ```
-python3 scripts/machine_learning.py predict \
+nohup python3 scripts/machine_learning.py predict \
  --input /storage/data/unlabeled \
- --results_path /storage/results/iter_6 \
+ --results_path /storage/results/iter_6/split_1 \
  --metadata /storage/data/unlabeled.csv \
- --saving_path /storage/results/iter_6/predictions.csv \
- --mode uncertain \
- --n_predictions 800 \
+ --saving_path /storage/results/iter_6/split_1/predictions.csv \
+ --mode certain \
+ --n_predictions 1000 \
  --sample 1.0 \
- --batch_size 64 \
- --sample_path /storage/results/iter_6/sample
+ --batch_size 32 \
+ --sample_path /storage/results/iter_6/sample_certain \
+ &> /storage/results/predict.out &
 ```
 
 ## Annotate with Label-Studio
 
+to do: issue with user permissions
+
+remove mydata folder
+
 Access the container of label studio
+
+```
+docker-compose exec label_studio bash
+```
 
 Start watermark_detection project
 
 ```
-label-studio init watermark_detection --label-config /code/labelstudio-config.xml
+label-studio init new_project --label-config /code/labelstudio-config.xml
 
-label-studio start watermark_detection -p 8093
+label-studio start new_project -p 8093 --host localhost
 ```
 
 Go to the watermark_detection project -> Settings -> Cloud Storage -> Source storage -> Local storage
 
-Annotate and export as CSV
+Add the path to the sample to annotate
+
+Annotate and export as CSV. Move to some part of the results folder
 
 moving annotations to labeled and removing from unlabeled images
 
 ```
 python3 scripts/data_ops.py move_labeled \
- --sample_dir /storage/results/iter_6/sample \
- --labeled_dir /storage/data/labeled \
+ --sample_dir /storage/results/iter_6/sample_certain \
+ --labeled_dir /storage/data/labeled_new_data \
  --labels '/storage/results/iter_6/project-1-at-2023-10-31-14-05-97816efa.csv'
 ```
 parse labeled dataset
@@ -141,8 +149,8 @@ https://docs.ray.io/en/latest/ray-overview/installation.html#docker-source-image
 nohup python3 scripts/hyperparameter_tuning.py \
  --data_dir /storage/data/labeled_4312 \
  --saving_dir /storage/results/hyperparameter_tuning \
- --num_epochs 1 \
- --num_samples 5 \
+ --num_epochs 15 \
+ --num_samples 50 \
  &> /storage/results/hyperparameter_tuning.out &
 ```
 

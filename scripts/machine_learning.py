@@ -16,6 +16,7 @@ import seaborn as sn
 import pandas as pd
 from sklearn.metrics import confusion_matrix, precision_score,accuracy_score, recall_score
 import matplotlib.pyplot as plt
+from shutil import copyfile
 
 from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
@@ -471,6 +472,8 @@ def predict(**kwargs):
 
     n_classes = len(classes)
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     model = Classifier(
         output_dim = n_classes, 
         learning_rate = 0.0,
@@ -478,6 +481,10 @@ def predict(**kwargs):
     )
 
     model.load_state_dict(torch.load(results_path.joinpath('checkpoint.pth')))
+
+    print(device)
+
+    model = model.to(device)
 
     model.eval()
 
@@ -505,15 +512,16 @@ def predict(**kwargs):
     path_list = []
     prediction_list = []
     with torch.no_grad():
-        for paths,batch in train_loader:
-            outputs = model(batch)
+        for paths,batch in tqdm(train_loader):
+            batch = batch.to(device)
+            outputs = model(batch).cpu()
             prediction_list += [classes[i] for i in torch.argmax(outputs,axis=1)]
             conf_list.append(outputs)
             path_list.append(paths)
 
     print('Finished predicting')
 
-    output = torch.Tensor(len(train_loader)*batch_size, n_classes)
+    output = torch.Tensor(len(train_loader)*batch_size, n_classes).cpu()
     output = torch.cat(conf_list, out=output)
 
     path_list = [list(t) for t in path_list]
@@ -538,7 +546,7 @@ def predict(**kwargs):
 
     df = df.merge(meta_df)
     df = df.drop_duplicates(subset=['path'])
-    df = df.head(n_predictions) 
+    #df = df.head(n_predictions) 
     df.to_csv(saving_path,index=False)
     print(df.shape)
 
@@ -547,7 +555,7 @@ def predict(**kwargs):
     sample_path = Path(sample_path)
     sample_path.mkdir(parents = True, exist_ok = True)
 
-    for path in df['path'].values:
+    for path in df['path'].head(n_predictions).values:
         copyfile(path, sample_path.joinpath(Path(path).name))
 
     print('Finished')

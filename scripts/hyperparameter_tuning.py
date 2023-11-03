@@ -175,8 +175,8 @@ def main(*args,**kwargs):
     }
 
     search_space = {
-        "lr": tune.loguniform(1e-4, 1e-1),
-        "batch_size": tune.choice([4, 8, 16 ]),
+        "lr": tune.loguniform(1e-6, 1e-3),
+        "batch_size": tune.choice([4, 8, 16]),
     }
 
     def train_func(config):
@@ -244,6 +244,7 @@ def main(*args,**kwargs):
     sc = ax.scatter(x, y, c=z, alpha=0.5)
     fig.colorbar(sc)
     ax.set_title('Loss')
+    ax.set_yscale('log')
     fig.savefig(saving_dir.joinpath('loss_scatter.jpg'))
 
     fig, ax = plt.subplots()
@@ -251,6 +252,7 @@ def main(*args,**kwargs):
     sc = plt.scatter(x, y, c=z, alpha=0.5)
     fig.colorbar(sc)
     ax.set_title('Accuracy')
+    ax.set_yscale('log')
     fig.savefig(saving_dir.joinpath('accuracy_scatter.jpg'))
     print('Finished')
 

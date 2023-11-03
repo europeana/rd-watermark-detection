@@ -18,7 +18,7 @@ from ray.train.lightning import (
     RayTrainReportCallback,
     prepare_trainer,
 )
-
+import ray
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
 from ray.train import RunConfig, ScalingConfig, CheckpointConfig
@@ -166,6 +166,8 @@ def main(*args,**kwargs):
     saving_dir = kwargs.get('saving_dir')
     num_epochs = kwargs.get('num_epochs')
     num_samples = kwargs.get('num_samples')
+
+    ray.init(_temp_dir=saving_dir)
 
     saving_dir = Path(saving_dir)
     saving_dir.mkdir(exist_ok = True, parents = True)

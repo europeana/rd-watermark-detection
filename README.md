@@ -91,9 +91,6 @@ nohup python3 scripts/machine_learning.py predict \
 
 ## Annotate with Label-Studio
 
-to do: issue with user permissions
-
-remove mydata folder
 
 Access the container of label studio
 
@@ -135,6 +132,9 @@ nohup python3 scripts/data_ops.py parse_dataset \
 ```
 
 ## Hyperparameter tuning
+
+to do: add path for temp files
+https://github.com/ray-project/ray/issues/31478
 
 hyperparameter tuning
 

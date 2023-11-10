@@ -35,10 +35,17 @@ Obtain data
 
 Equal amount of images with and without watermarks
 
+Set up your Europeana API key as
+
+```
+export EUROPEANA_API_KEY=yourapikey
+```
+
+
 ```
 nohup python3 scripts/data_ops.py harvest_data \
  --datasets_path /storage/data/new_datasets.json \
- --n_per_dataset 200 \
+ --n_per_dataset 50 \
  --saving_path /storage/data/unlabeled.csv \
  --labeled_path /storage/data/labeled_4312.csv \
  &> /storage/results/data_harvesting.out &
@@ -91,6 +98,12 @@ nohup python3 scripts/machine_learning.py predict \
 
 ## Annotate with Label-Studio
 
+Run it with docker compose 
+
+https://github.com/HumanSignal/label-studio#run-with-docker-compose
+
+
+https://github.com/HumanSignal/label-studio/issues/3242
 
 Access the container of label studio
 

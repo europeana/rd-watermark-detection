@@ -33,6 +33,7 @@ services:
         - LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=/label-studio/files/
         - LOCAL_FILES_SERVING_ENABLED=true
         - LOCAL_FILES_DOCUMENT_ROOT=/label-studio/data/
+        - ff_front_dev_1470_dm_pagination_010422_short=1
       ports:
         - ${LABELSTUDIO_PORT}:${LABELSTUDIO_PORT}
 

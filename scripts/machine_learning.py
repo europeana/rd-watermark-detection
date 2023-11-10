@@ -552,11 +552,12 @@ def predict(**kwargs):
 
     # saving sample
 
-    sample_path = Path(sample_path)
-    sample_path.mkdir(parents = True, exist_ok = True)
+    if sample_path:
+        sample_path = Path(sample_path)
+        sample_path.mkdir(parents = True, exist_ok = True)
 
-    for path in df['path'].head(n_predictions).values:
-        copyfile(path, sample_path.joinpath(Path(path).name))
+        for path in df['path'].head(n_predictions).values:
+            copyfile(path, sample_path.joinpath(Path(path).name))
 
     print('Finished')
 

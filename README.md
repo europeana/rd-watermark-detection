@@ -1,13 +1,20 @@
 # R&D watermark detection repository
 ## Table of Contents
-- [Table of Contents](#table-of-contents)
-- [About the Project](#about-the-project)
-- [Description](#description)
-- [Built With](#built-with)
-- [Getting Started](#getting-started)
-- [Prerequisites](#prerequisites-and-dependencies)
-- [Installation](#installation-of-library)
-- [Usage](#usage)
+* [Table of Contents](#table-of-contents)
+* [About the Project](#about-the-project)
+* [Description](#description)
+* [Built With](#built-with)
+* [Getting Started](#getting-started)
+* [Prerequisites](#prerequisites-and-dependencies)
+* [Installation](#installation-of-library)
+* [Usage](#usage)
+    * [Model building](#model-building)
+        * [Data acquisition](#data-acquisition)
+        * [Model training](#model-training)
+        * [Inference](#inference)
+        * [Hyperparameter tuning](#hyperparameter-tuning)
+        * [Dataset curation](#dataset-curation)
+    * [Data annotation](#data-annotation)
 
 # About the Project
 
@@ -39,32 +46,18 @@ Go to the cloned folder of the repo /rd-watermark-detection,
 
 Docker containers for machine learning and for deploying LabelStudio
 
-
-and run the following command to build the containers
-```shell
-docker-compose build --no-cache
-```
-
-# Usage
-
-## Enable Python API Endpoint for image enhancement
-go to the cloned folder of the library /metis-image-enhancer/metis-image-enhancer-python-rest/src/main, 
-and run the following commands to get the service up and running 
-this command will run with 1 node
-```shell
-docker compose up 
-```
-the application uses a python api to enhance the image
-
-
-## Setting up environment
-
 .env file with environment variables: ports and paths
 
 ```
 DATA_DIR="/path/to/data"
 LABELSTUDIO_DIR="/path/for/labelstudio/metadata"
+NOTEBOOK_PORT=5051
+TENSORBOARD_PORT=6006
+LABELSTUDIO_PORT=8093
 ```
+
+
+run the following command to build and run the containers
 
 ```shell
 docker-compose up -d
@@ -74,35 +67,55 @@ Services:
 * ```machine_learning```
 * ```label_studio```
 
-```
+# Usage
+
+
+## Model building
+
+Execute the following command to access the ```machine_learning``` container
+
+```shell
 docker-compose exec machine_learning bash
 ```
 
-label_studio
+Jupyter notebook can be launched with the following command:
 
-```
-docker-compose exec label_studio bash
-```
-
-```
+```shell
 jupyter notebook --port 5051 --ip 0.0.0.0 --no-browser --allow-root
 ```
 
+Make sure the port is the same as in the .env file
 
-#### Data acquisition
 
-Obtain data
+### Data acquisition
 
-Equal amount of images with and without watermarks
+The first step is to obtain data for assembling a dataset of images with and without watermarks. We can use the Europeana Search API for this via PyEuropeana. Get your Europeana API key [here](https://pro.europeana.eu/page/get-api) and set it up as an environment variable as follows:
 
-Set up your Europeana API key as
-
-```
+```shell
 export EUROPEANA_API_KEY=yourapikey
 ```
 
+The data sources for watermarked images can be specified with a json file with the following structure:
 
 ```
+
+{"query_list": [
+    "edm_datasetName:2024905_*", 
+    "edm_datasetName:2059505_*", 
+    "edm_datasetName:334_*",
+     ]}
+
+```
+
+
+
+Data sources
+
+
+
+Run the following command to query using the search API
+
+```shell
 nohup python3 scripts/data_ops.py harvest_data \
  --datasets_path /storage/data/new_datasets.json \
  --n_per_dataset 50 \
@@ -118,9 +131,9 @@ nohup python3 scripts/data_ops.py download \
 ```
 
 
-## Model training
+### Model training
 
-```
+```shell
 nohup python3 scripts/machine_learning.py train \
  --batch_size 16 \
  --data_dir /storage/data/labeled_6999 \
@@ -131,18 +144,18 @@ nohup python3 scripts/machine_learning.py train \
  &> /storage/results/training.out &
 ```
 
-```
+```shell
 tensorboard --port 6006 --host 0.0.0.0 --logdir=/storage/results/labeled_6999/split_2/tensorboard_logs/
 ```
-
+XAI 
 https://github.com/jacobgil/pytorch-grad-cam
 
 
 
-## Predict
+### Inference
 
 
-```
+```shell
 nohup python3 scripts/machine_learning.py predict \
  --input /storage/data/unlabeled \
  --results_path /storage/results/iter_6/split_5 \
@@ -156,7 +169,74 @@ nohup python3 scripts/machine_learning.py predict \
  &> /storage/results/predict.out &
 ```
 
-## Annotate with Label-Studio
+### Hyperparameter tuning
+
+to do: add path for temp files
+https://github.com/ray-project/ray/issues/31478
+
+hyperparameter tuning
+
+https://docs.ray.io/en/latest/tune/examples/tune-pytorch-lightning.html
+https://docs.ray.io/en/latest/train/examples/lightning/lightning_mnist_example.html#lightning-mnist-example
+
+https://pytorch.org/tutorials/beginner/hyperparameter_tuning_tutorial.html
+https://docs.ray.io/en/latest/ray-overview/installation.html#docker-source-images
+
+
+```shell
+nohup python3 scripts/hyperparameter_tuning.py \
+ --data_dir /storage/data/labeled_4312 \
+ --saving_dir /storage/results/hyperparameter_tuning \
+ --num_epochs 15 \
+ --num_samples 50 \
+ &> /storage/results/hyperparameter_tuning.out &
+```
+
+
+automatic image augmentation
+
+https://albumentations.ai/docs/autoalbument/
+https://albumentations.ai/docs/autoalbument/docker/
+
+
+### Dataset curation
+
+#### Fastdup
+
+https://github.com/visual-layer/fastdup
+
+https://visual-layer.readme.io/docs/analyzing-labeled-images
+
+```
+python3 scripts/dataset_curation.py fastdup \
+ --data_dir /storage/data/labeled_4312 \
+ --saving_dir /storage/results/fastdup
+```
+
+Explore the html pages in saving_dir
+
+
+#### Cleanlab
+
+https://github.com/cleanlab/cleanlab
+
+https://docs.cleanlab.ai/stable/tutorials/image.html
+
+First run crossvalidation using the machine_learning.py script with crossvalidation=True
+
+```
+python3 scripts/dataset_curation.py cleanlab --results_dir /storage/results/iter_7/ 
+```
+
+
+
+## Data Annotation
+
+label_studio
+
+```shell
+docker-compose exec label_studio bash
+```
 
 Run it with docker compose 
 
@@ -204,66 +284,8 @@ nohup python3 scripts/data_ops.py parse_dataset \
  &> /storage/results/parsing_labeled.out &
 ```
 
-## Hyperparameter tuning
-
-to do: add path for temp files
-https://github.com/ray-project/ray/issues/31478
-
-hyperparameter tuning
-
-https://docs.ray.io/en/latest/tune/examples/tune-pytorch-lightning.html
-https://docs.ray.io/en/latest/train/examples/lightning/lightning_mnist_example.html#lightning-mnist-example
-
-https://pytorch.org/tutorials/beginner/hyperparameter_tuning_tutorial.html
-https://docs.ray.io/en/latest/ray-overview/installation.html#docker-source-images
 
 
-```
-nohup python3 scripts/hyperparameter_tuning.py \
- --data_dir /storage/data/labeled_4312 \
- --saving_dir /storage/results/hyperparameter_tuning \
- --num_epochs 15 \
- --num_samples 50 \
- &> /storage/results/hyperparameter_tuning.out &
-```
-
-
-automatic image augmentation
-
-https://albumentations.ai/docs/autoalbument/
-https://albumentations.ai/docs/autoalbument/docker/
-
-
-
-
-# Dataset curation
-
-## Fastdup
-
-https://github.com/visual-layer/fastdup
-
-https://visual-layer.readme.io/docs/analyzing-labeled-images
-
-```
-python3 scripts/dataset_curation.py fastdup \
- --data_dir /storage/data/labeled_4312 \
- --saving_dir /storage/results/fastdup
-```
-
-Explore the html pages in saving_dir
-
-
-## Cleanlab
-
-https://github.com/cleanlab/cleanlab
-
-https://docs.cleanlab.ai/stable/tutorials/image.html
-
-First run crossvalidation using the machine_learning.py script with crossvalidation=True
-
-```
-python3 scripts/dataset_curation.py cleanlab --results_dir /storage/results/iter_7/ 
-```
 
 
 

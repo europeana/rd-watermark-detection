@@ -1,6 +1,49 @@
-# Detection of watermarks in images
+# R&D watermark detection repository
+## Table of Contents
+- [Table of Contents](#table-of-contents)
+- [About the Project](#about-the-project)
+- [Description](#description)
+- [Built With](#built-with)
+- [Getting Started](#getting-started)
+- [Prerequisites](#prerequisites-and-dependencies)
+- [Installation](#installation-of-library)
+- [Usage](#usage)
+- [Example](#example)
+- [Architecture](#design-architecture)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [Acknowledgements](#acknowledgements)
 
-Intro to the project
+# About the Project
+
+# Description
+
+Library that calls python api from java. The library uses image enhancement (super resolution)
+on small thumbnails, and performs a simple sharpen filter.
+
+# Built With
+* [Python](https://www.python.org/)
+* [PyTorch Lightning](https://lightning.ai/pytorch-lightning)
+* [LabelStudio](https://labelstud.io/)
+
+# Getting Started
+# Prerequisites and Dependencies
+
+* [Docker Engine](https://docs.docker.com/engine/)
+* [Docker Compose](https://docs.docker.com/compose/)
+
+# Installation of library
+### Get the repository
+```shell
+git clone https://github.com/europeana/metis-image-enhancer.git
+```
+
+### Build docker ISR API
+go to the cloned folder of the library /metis-image-enhancer/metis-image-enhancer-python-rest/src/main,
+and run the following command to build the image enhancer application
+```shell
+docker compose build --no-cache
+```
 
 
 ## Setting up environment
@@ -63,16 +106,16 @@ nohup python3 scripts/data_ops.py download \
 ```
 nohup python3 scripts/machine_learning.py train \
  --batch_size 16 \
- --data_dir /storage/data/labeled_4312 \
- --saving_dir /storage/results/iter_7 \
- --max_epochs 1 \
- --sample 0.1 \
- --crossvalidation False \
+ --data_dir /storage/data/labeled_6999 \
+ --saving_dir /storage/results/labeled_6999 \
+ --max_epochs 40 \
+ --sample 1.0 \
+ --crossvalidation True \
  &> /storage/results/training.out &
 ```
 
 ```
-tensorboard --port 6006 --host 0.0.0.0 --logdir=/storage/results/iter_7/split_1/tensorboard_logs/
+tensorboard --port 6006 --host 0.0.0.0 --logdir=/storage/results/labeled_6999/split_2/tensorboard_logs/
 ```
 
 https://github.com/jacobgil/pytorch-grad-cam
@@ -85,13 +128,13 @@ https://github.com/jacobgil/pytorch-grad-cam
 ```
 nohup python3 scripts/machine_learning.py predict \
  --input /storage/data/unlabeled \
- --results_path /storage/results/iter_6/split_1 \
+ --results_path /storage/results/iter_6/split_5 \
  --metadata /storage/data/unlabeled.csv \
- --saving_path /storage/results/iter_6/split_1/predictions.csv \
- --mode certain \
+ --saving_path /storage/results/iter_6/split_5/predictions.csv \
+ --mode uncertain \
  --n_predictions 1000 \
  --sample 1.0 \
- --batch_size 32 \
+ --batch_size 16 \
  --sample_path /storage/results/iter_6/sample_certain \
  &> /storage/results/predict.out &
 ```
@@ -139,8 +182,8 @@ to do: include error message if api key not detected
 
 ```
 nohup python3 scripts/data_ops.py parse_dataset \
- --dataset_path /storage/data/labeled \
- --output_path /storage/data/labeled.csv \
+ --dataset_path /storage/data/labeled_6999 \
+ --output_path /storage/data/labeled_6999.csv \
  &> /storage/results/parsing_labeled.out &
 ```
 
@@ -202,7 +245,7 @@ https://docs.cleanlab.ai/stable/tutorials/image.html
 First run crossvalidation using the machine_learning.py script with crossvalidation=True
 
 ```
-python3 scripts/dataset_curation.py cleanlab --results_dir /storage/results/iter_6/ 
+python3 scripts/dataset_curation.py cleanlab --results_dir /storage/results/iter_7/ 
 ```
 
 

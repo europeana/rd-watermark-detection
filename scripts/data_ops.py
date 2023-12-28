@@ -59,21 +59,28 @@ def harvest_data(**kwargs):
     labeled_path = kwargs.get('labeled_path')
     n_per_dataset = kwargs.get('n_per_dataset',150)
     datasets_path = kwargs.get('datasets_path')
+    n_normal = kwargs.get('n_normal')
 
-    with open(datasets_path, 'r') as f:
-      query_list = json.load(f)['query_list']
+    watermark_df = pd.DataFrame()
 
-    print('Getting watermarks ...')
+    if datasets_path:
 
-    watermark_df = harvest_watermark(
-        n_per_dataset = n_per_dataset,
-        query_list = query_list,
-    )
+      with open(datasets_path, 'r') as f:
+        query_list = json.load(f)['query_list']
+
+      print('Getting watermarks ...')
+
+      watermark_df = harvest_watermark(
+          n_per_dataset = n_per_dataset,
+          query_list = query_list,
+      )
+
+      n_normal = watermark_df.shape[0]
 
     print('Getting no-watermarks ...')
 
     normal_df = harvest_normal(
-        n = watermark_df.shape[0],
+        n = n_normal,
     )
 
     df = pd.concat([watermark_df,normal_df])

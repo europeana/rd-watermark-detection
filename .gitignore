@@ -6,3 +6,5 @@ core
 mydata*
 *tb_logs*
 *__pycache__*
+deployment/keys.txt
+deployment/data

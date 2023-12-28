@@ -4,8 +4,7 @@
 * [About the Project](#about-the-project)
 * [Description](#description)
 * [Built With](#built-with)
-* [Getting Started](#getting-started)
-* [Prerequisites](#prerequisites-and-dependencies)
+* [Prerequisites](#prerequisites)
 * [Installation](#installation-of-library)
 * [Usage](#usage)
     * [Model building](#model-building)
@@ -28,25 +27,20 @@ This repository contains a set of tools for building a model to detect digital w
 * [PyTorch Lightning](https://lightning.ai/pytorch-lightning)
 * [LabelStudio](https://labelstud.io/)
 
-# Getting Started
-# Prerequisites and Dependencies
+# Prerequisites
 
 * [Docker Engine](https://docs.docker.com/engine/)
 * [Docker Compose](https://docs.docker.com/compose/)
 
-# Installation of library
-### Get the repository
+# Installation
+
+Get the repository:
+
 ```shell
 git clone https://github.com/europeana/rd-watermark-detection.git
 ```
 
-### Build docker images
-
-Go to the cloned folder of the repo /rd-watermark-detection,
-
-Docker containers for machine learning and for deploying LabelStudio
-
-.env file with environment variables: ports and paths
+Go to the `.env` file in the cloned folder of the repo `/rd-watermark-detection` and add paths for the data, LabelStudio metadata and ports for jupyter notebooks, tensorboard and LabelStudio.
 
 ```
 DATA_DIR="/path/to/data"
@@ -56,19 +50,18 @@ TENSORBOARD_PORT=6006
 LABELSTUDIO_PORT=8093
 ```
 
+Docker can be used to set up two containers:
+* ```machine_learning```: for model building
+* ```label_studio```: for data annotation using LabelStudio
 
-run the following command to build and run the containers
+Run the following command to build and run the containers: 
 
 ```shell
 docker-compose up -d
 ```
 
-Services:
-* ```machine_learning```
-* ```label_studio```
 
 # Usage
-
 
 ## Model building
 
@@ -98,7 +91,6 @@ export EUROPEANA_API_KEY=yourapikey
 The data sources for watermarked images can be specified with a json file with the following structure:
 
 ```
-
 {"query_list": [
     "edm_datasetName:2024905_*", 
     "edm_datasetName:2059505_*", 
@@ -107,13 +99,9 @@ The data sources for watermarked images can be specified with a json file with t
 
 ```
 
+Non-watermarked images will be obtained from arbitrary collections using the query `"*"` in the Search API. 
 
-
-Data sources
-
-
-
-Run the following command to query using the search API
+Run the following command to obtain the metadata of the objects resulting from the aforementioned queries. The number of non-watermark images will be the same as the number of watermarked images. The number of images per dataset can be set with the parameter `n_per_dataset`:
 
 ```shell
 nohup python3 scripts/data_ops.py harvest_data \
@@ -122,7 +110,11 @@ nohup python3 scripts/data_ops.py harvest_data \
  --saving_path /storage/data/unlabeled.csv \
  --labeled_path /storage/data/labeled_4312.csv \
  &> /storage/results/data_harvesting.out &
+```
 
+Run the following command to download the image files of the objects retrieved in the previous step:
+
+```
 nohup python3 scripts/data_ops.py download \
  --input /storage/data/unlabeled.csv \
  --saving_dir /storage/data/unlabeled \
@@ -130,8 +122,14 @@ nohup python3 scripts/data_ops.py download \
 
 ```
 
+Before training a model you might want to manually review and annotate the data using labelstudio. Go to the section [Data annotation](#data-annotation)
+
 
 ### Model training
+
+Once we have a labeled dataset we can train an image classification model that will separate images with and without watermarks. The model is a [ResNet 18](https://pytorch.org/hub/pytorch_vision_resnet/) pretrained on ImageNet with a binary output layer. For training the labeled dataset is divided in train/val/test splits with stratified sampling. The validation loss during training is monitored on the validation set, and the resulting model is evaluated on the test set. 
+
+The following command trains a model as described above taking the values for the batch size, learning rate, max number of epochs, and crossvalidation as arguments:
 
 ```shell
 nohup python3 scripts/machine_learning.py train \
@@ -144,15 +142,22 @@ nohup python3 scripts/machine_learning.py train \
  &> /storage/results/training.out &
 ```
 
+The training can be monitored using tensorboard:
+
 ```shell
 tensorboard --port 6006 --host 0.0.0.0 --logdir=/storage/results/labeled_6999/split_2/tensorboard_logs/
 ```
-XAI 
-https://github.com/jacobgil/pytorch-grad-cam
 
+The results of the training will be a set of files with the model weights, the data splits and evalutation metrics. There are also interpretability maps using GradCAM, which has been adapted from [this repository](https://github.com/jacobgil/pytorch-grad-cam)
 
 
 ### Inference
+
+Once the model has been trained it can be used to predict on unseen images
+
+uncertain
+
+Useful for Active Learning
 
 
 ```shell
@@ -171,18 +176,6 @@ nohup python3 scripts/machine_learning.py predict \
 
 ### Hyperparameter tuning
 
-to do: add path for temp files
-https://github.com/ray-project/ray/issues/31478
-
-hyperparameter tuning
-
-https://docs.ray.io/en/latest/tune/examples/tune-pytorch-lightning.html
-https://docs.ray.io/en/latest/train/examples/lightning/lightning_mnist_example.html#lightning-mnist-example
-
-https://pytorch.org/tutorials/beginner/hyperparameter_tuning_tutorial.html
-https://docs.ray.io/en/latest/ray-overview/installation.html#docker-source-images
-
-
 ```shell
 nohup python3 scripts/hyperparameter_tuning.py \
  --data_dir /storage/data/labeled_4312 \
@@ -192,11 +185,21 @@ nohup python3 scripts/hyperparameter_tuning.py \
  &> /storage/results/hyperparameter_tuning.out &
 ```
 
+References:
+* [Ray tune with Pytorch Lightning](https://docs.ray.io/en/latest/tune/examples/tune-pytorch-lightning.html)
+* [Example Pytorch Lightning MNIST](https://docs.ray.io/en/latest/train/examples/lightning/lightning_mnist_example.html#lightning-mnist-example)
+* [Pytorch hyperparameter tuning](https://pytorch.org/tutorials/beginner/hyperparameter_tuning_tutorial.html)
+* [Ray tune Docker images](https://docs.ray.io/en/latest/ray-overview/installation.html#docker-source-images)
+
+to do: add path for temp files https://github.com/ray-project/ray/issues/31478
+
 
 automatic image augmentation
 
 https://albumentations.ai/docs/autoalbument/
 https://albumentations.ai/docs/autoalbument/docker/
+
+(to be added)
 
 
 ### Dataset curation

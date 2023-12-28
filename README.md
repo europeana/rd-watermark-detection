@@ -8,21 +8,16 @@
 - [Prerequisites](#prerequisites-and-dependencies)
 - [Installation](#installation-of-library)
 - [Usage](#usage)
-- [Example](#example)
-- [Architecture](#design-architecture)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [Acknowledgements](#acknowledgements)
 
 # About the Project
 
 # Description
 
-Library that calls python api from java. The library uses image enhancement (super resolution)
-on small thumbnails, and performs a simple sharpen filter.
+This repository contains a set of tools for building a model to detect digital watermarks in images, spanning data acquisition, labeling and curation, as well as model training and evaluation. 
 
 # Built With
 * [Python](https://www.python.org/)
+* [PyEuropeana](https://github.com/europeana/rd-europeana-python-api/tree/master)
 * [PyTorch Lightning](https://lightning.ai/pytorch-lightning)
 * [LabelStudio](https://labelstud.io/)
 
@@ -35,15 +30,31 @@ on small thumbnails, and performs a simple sharpen filter.
 # Installation of library
 ### Get the repository
 ```shell
-git clone https://github.com/europeana/metis-image-enhancer.git
+git clone https://github.com/europeana/rd-watermark-detection.git
 ```
 
-### Build docker ISR API
-go to the cloned folder of the library /metis-image-enhancer/metis-image-enhancer-python-rest/src/main,
-and run the following command to build the image enhancer application
+### Build docker images
+
+Go to the cloned folder of the repo /rd-watermark-detection,
+
+Docker containers for machine learning and for deploying LabelStudio
+
+
+and run the following command to build the containers
 ```shell
-docker compose build --no-cache
+docker-compose build --no-cache
 ```
+
+# Usage
+
+## Enable Python API Endpoint for image enhancement
+go to the cloned folder of the library /metis-image-enhancer/metis-image-enhancer-python-rest/src/main, 
+and run the following commands to get the service up and running 
+this command will run with 1 node
+```shell
+docker compose up 
+```
+the application uses a python api to enhance the image
 
 
 ## Setting up environment
@@ -51,11 +62,17 @@ docker compose build --no-cache
 .env file with environment variables: ports and paths
 
 ```
+DATA_DIR="/path/to/data"
+LABELSTUDIO_DIR="/path/for/labelstudio/metadata"
+```
+
+```shell
 docker-compose up -d
 ```
 
 Services:
-machine_learning
+* ```machine_learning```
+* ```label_studio```
 
 ```
 docker-compose exec machine_learning bash
@@ -72,7 +89,7 @@ jupyter notebook --port 5051 --ip 0.0.0.0 --no-browser --allow-root
 ```
 
 
-## Data acquisition
+#### Data acquisition
 
 Obtain data
 

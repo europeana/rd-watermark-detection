@@ -153,12 +153,7 @@ The results of the training will be a set of files with the model weights, the d
 
 ### Inference
 
-Once the model has been trained it can be used to predict on unseen images
-
-uncertain
-
-Useful for Active Learning
-
+Once the model has been trained it can be used to predict on unseen images. The resulting predictions can be ranked by their uncertainty, defined in this case as the absolute value of the difference between the confidence scores for the two output labels. This can be useful for sampling data to be annotated using an Active Learning or human-in-the-loop approach. 
 
 ```shell
 nohup python3 scripts/machine_learning.py predict \
@@ -175,6 +170,8 @@ nohup python3 scripts/machine_learning.py predict \
 ```
 
 ### Hyperparameter tuning
+
+Deep Learning models can be very sensitive to the value of certain hyperparameters. With the following command a hyperparameter search is carried for the batch size and learning rate. The range of the possible values of these parameters can be adjusted in the script
 
 ```shell
 nohup python3 scripts/hyperparameter_tuning.py \
@@ -194,21 +191,28 @@ References:
 to do: add path for temp files https://github.com/ray-project/ray/issues/31478
 
 
-automatic image augmentation
+Automatic Image Augmentation
 
-https://albumentations.ai/docs/autoalbument/
-https://albumentations.ai/docs/autoalbument/docker/
+(to be added maybe)
 
-(to be added)
+Refences:
+* [Autoalbument](https://albumentations.ai/docs/autoalbument/)
+* [Autoalbument Docker](https://albumentations.ai/docs/autoalbument/docker/)
 
 
 ### Dataset curation
 
+When working with thousands of images it is common to have noisy labels, or misclassified images
+
+These can harm the performance of a model when training
+
+It is good to identify them
+
+
+
 #### Fastdup
 
-https://github.com/visual-layer/fastdup
-
-https://visual-layer.readme.io/docs/analyzing-labeled-images
+Fastdup creates a report containing duplicate images, outliers and clusters. 
 
 ```
 python3 scripts/dataset_curation.py fastdup \
@@ -216,26 +220,31 @@ python3 scripts/dataset_curation.py fastdup \
  --saving_dir /storage/results/fastdup
 ```
 
-Explore the html pages in saving_dir
+After running the previous command explore the html pages in saving_dir
+
+References:
+* [Fastdup repository](https://github.com/visual-layer/fastdup)
+* [Analizing image classification dataset](https://visual-layer.readme.io/docs/analyzing-labeled-images)
+
 
 
 #### Cleanlab
 
-https://github.com/cleanlab/cleanlab
-
-https://docs.cleanlab.ai/stable/tutorials/image.html
-
-First run crossvalidation using the machine_learning.py script with crossvalidation=True
+Cleanlab helps identifying mislabeled images. First run crossvalidation using the `machine_learning.py` script with `crossvalidation=True`.
 
 ```
 python3 scripts/dataset_curation.py cleanlab --results_dir /storage/results/iter_7/ 
 ```
 
+References:
+* [Cleanlab repository](https://github.com/cleanlab/cleanlab)
+* [Image classification tutorial](https://docs.cleanlab.ai/stable/tutorials/image.html)
+
 
 
 ## Data Annotation
 
-label_studio
+Access the `label_studio` container:
 
 ```shell
 docker-compose exec label_studio bash
@@ -250,9 +259,6 @@ https://github.com/HumanSignal/label-studio/issues/3242
 
 Access the container of label studio
 
-```
-docker-compose exec label_studio bash
-```
 
 Start watermark_detection project
 

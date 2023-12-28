@@ -195,7 +195,7 @@ Automatic Image Augmentation
 
 (to be added maybe)
 
-Refences:
+References:
 * [Autoalbument](https://albumentations.ai/docs/autoalbument/)
 * [Autoalbument Docker](https://albumentations.ai/docs/autoalbument/docker/)
 
@@ -244,48 +244,39 @@ Access the `label_studio` container:
 docker-compose exec label_studio bash
 ```
 
-Run it with docker compose 
-
-https://github.com/HumanSignal/label-studio#run-with-docker-compose
-
-
-https://github.com/HumanSignal/label-studio/issues/3242
-
-Access the container of label studio
-
-
 Start watermark_detection project
 
+```shell
+label-studio init watermark_detection --label-config /code/labelstudio-config.xml
+
+label-studio start watermark_detection -p 8093 --host localhost
 ```
-label-studio init new_project --label-config /code/labelstudio-config.xml
 
-label-studio start new_project -p 8093 --host localhost
-```
+Go to the watermark_detection project -> Settings -> Cloud Storage -> Source storage -> Local storage and add the path to the sample to annotate. Annotate, export as CSV and place it in the data folder. 
 
-Go to the watermark_detection project -> Settings -> Cloud Storage -> Source storage -> Local storage
+Execute the following command to correct the annotations of the labeled dataset:
 
-Add the path to the sample to annotate
-
-Annotate and export as CSV. Move to some part of the results folder
-
-moving annotations to labeled and removing from unlabeled images
-
-```
+```shell
 python3 scripts/data_ops.py move_labeled \
  --sample_dir /storage/results/iter_6/sample_certain \
  --labeled_dir /storage/data/labeled_new_data \
  --labels '/storage/results/iter_6/project-1-at-2023-10-31-14-05-97816efa.csv'
 ```
-parse labeled dataset
+Run the following command to parse the corrected labeled dataset:
 
-to do: include error message if api key not detected
-
-```
+```shell
 nohup python3 scripts/data_ops.py parse_dataset \
  --dataset_path /storage/data/labeled_6999 \
  --output_path /storage/data/labeled_6999.csv \
  &> /storage/results/parsing_labeled.out &
 ```
+
+References:
+* [LabelStudio docker compose](https://github.com/HumanSignal/label-studio#run-with-docker-compose)
+* [LabelStudio issue](https://github.com/HumanSignal/label-studio/issues/3242)
+
+
+
 
 
 

@@ -202,13 +202,7 @@ Refences:
 
 ### Dataset curation
 
-When working with thousands of images it is common to have noisy labels, or misclassified images
-
-These can harm the performance of a model when training
-
-It is good to identify them
-
-
+When working with thousands of images it is common to have noisy labels, misclassified images, duplicates and outliers. These can harm the performance of a model when training so it is good to identify them. 
 
 #### Fastdup
 

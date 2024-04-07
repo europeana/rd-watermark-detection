@@ -180,7 +180,7 @@ def train(**kwargs):
     batch_size = kwargs.get('batch_size',16)
     learning_rate = kwargs.get('learning_rate',1e-4)
     threshold = kwargs.get('threshold',0.5)
-    num_workers = kwargs.get('num_workers',1)
+    num_workers = kwargs.get('num_workers',8)
     patience = kwargs.get('patience',5)
     crossvalidation = kwargs.get('crossvalidation',False)
     K = kwargs.get('K',5)
@@ -294,7 +294,7 @@ def train(**kwargs):
         trainer = pl.Trainer(
             accelerator="auto",
             max_epochs = max_epochs,
-            log_every_n_steps=100,
+            log_every_n_steps=10000,
             callbacks = callbacks,
             logger = logger
         )

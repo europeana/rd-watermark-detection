@@ -109,16 +109,16 @@ nohup python3 scripts/data_ops.py harvest_data \
  --n_per_dataset 50 \
  --saving_path /storage/data/unlabeled.csv \
  --labeled_path /storage/data/labeled_4312.csv \
- &> /storage/results/data_harvesting.out &
+ &> /storage/logs/data_harvesting.out &
 ```
 
 Run the following command to download the image files of the objects retrieved in the previous step:
 
 ```
 nohup python3 scripts/data_ops.py download \
- --input /storage/data/unlabeled.csv \
- --saving_dir /storage/data/unlabeled \
- &> /storage/results/download_images.out &
+ --input /storage/data/watermark_record_sample.csv \
+ --saving_dir /storage/data/watermark_record_sample \
+ &> /storage/logs/download_images.out &
 
 ```
 
@@ -134,18 +134,19 @@ The following command trains a model as described above taking the values for th
 ```shell
 nohup python3 scripts/machine_learning.py train \
  --batch_size 16 \
- --data_dir /storage/data/labeled_6999 \
- --saving_dir /storage/results/labeled_6999 \
- --max_epochs 40 \
+ --learning_rate 1e-5 \
+ --data_dir /storage/data/watermark_record_sample/ \
+ --saving_dir /storage/results/watermark_record_sample_lr_1e-5/ \
+ --max_epochs 60 \
  --sample 1.0 \
- --crossvalidation True \
- &> /storage/results/training.out &
+ --crossvalidation False \
+ &> /storage/logs/training.out &
 ```
 
 The training can be monitored using tensorboard:
 
 ```shell
-tensorboard --port 6006 --host 0.0.0.0 --logdir=/storage/results/labeled_6999/split_2/tensorboard_logs/
+tensorboard --port 6006 --host 0.0.0.0 --logdir=/storage/results/watermark_record_sample_lr_1e-5/split_1/tensorboard_logs/
 ```
 
 The results of the training will be a set of files with the model weights, the data splits and evalutation metrics. There are also interpretability maps using GradCAM, which has been adapted from [this repository](https://github.com/jacobgil/pytorch-grad-cam)
@@ -166,7 +167,20 @@ nohup python3 scripts/machine_learning.py predict \
  --sample 1.0 \
  --batch_size 16 \
  --sample_path /storage/results/iter_6/sample_certain \
- &> /storage/results/predict.out &
+ &> /storage/logs/predict.out &
+```
+
+Deployment
+
+```shell
+nohup python3 deployment/inference.py \
+ --input /storage/data/inference \
+ --results_path /storage/results/watermark_record_sample_lr_1e-5/split_1 \
+ --metadata /storage/data/sample_inference.csv \
+ --saving_path /storage/results/results_inference.csv \
+ --sample 1.0 \
+ --batch_size 32 \
+ &> /storage/logs/inference.out &
 ```
 
 ### Hyperparameter tuning
@@ -179,7 +193,7 @@ nohup python3 scripts/hyperparameter_tuning.py \
  --saving_dir /storage/results/hyperparameter_tuning \
  --num_epochs 15 \
  --num_samples 50 \
- &> /storage/results/hyperparameter_tuning.out &
+ &> /storage/logs/hyperparameter_tuning.out &
 ```
 
 References:

@@ -143,35 +143,6 @@ def my_collate(batch):
     batch = list(filter(lambda x: x is not None, batch))
     return torch.utils.data.dataloader.default_collate(batch)
 
-# Method for computing out-of-sample embeddings
-def compute_embeddings(model, testloader,device):
-    embeddings_list = []
-
-    with torch.no_grad():
-        for data in tqdm(testloader):
-            images, labels = data[0].to(device), data[1].to(device)
-
-            embeddings = model.embeddings(images)
-            embeddings_list.append(embeddings.cpu())
-
-    return torch.vstack(embeddings_list)
-
-
-# Method for computing out-of-sample predicted probabilities
-def compute_pred_probs(model, testloader,device):
-    pred_probs_list = []
-
-    with torch.no_grad():
-        for data in tqdm(testloader):
-            images, labels = data[0].to(device), data[1].to(device)
-
-            outputs = model(images)
-            pred_probs_list.append(outputs.cpu())
-
-    return torch.vstack(pred_probs_list)
-
-
-
 def predict(**kwargs):
 
     results_path = kwargs.get('results_path')
@@ -240,58 +211,29 @@ def predict(**kwargs):
     train_dataset = InferenceDataset(image_arr,transform = transform)
     train_loader = DataLoader(train_dataset, batch_size=batch_size,collate_fn=my_collate,num_workers=num_workers)
 
-    conf_list = []
-    path_list = []
-    prediction_list = []
+    cols = ['path', 'watermark']
+    first_write = True
+
     with torch.no_grad():
         for paths,batch in tqdm(train_loader):
             batch = batch.to(device)
             outputs = model(batch).cpu()
-            prediction_list += [classes[i] for i in torch.argmax(outputs,axis=1)]
-            conf_list.append(outputs)
-            path_list.append(paths)
 
+            batch_data = {
+                'path': paths,
+                'watermark': outputs[:, 1].cpu().numpy()
+            }
+            
+            df_batch = pd.DataFrame(batch_data, columns=cols)
+
+            if first_write:
+                df_batch.to_csv(saving_path, mode='w', header=True, index=False)
+                first_write = False
+            else:
+                df_batch.to_csv(saving_path, mode='a', header=False, index=False)
+
+ 
     print('Finished predicting')
-
-    output = torch.Tensor(len(train_loader)*batch_size, n_classes).cpu()
-    output = torch.cat(conf_list, out=output)
-
-    path_list = [list(t) for t in path_list]
-    path_list = [item for sublist in path_list for item in sublist]
-    
-    conf_dict = {'path':path_list}
-    conf_dict.update({cat:output[:,i] for i,cat in enumerate(classes)})
-
-    def absdiff(x):
-        return np.abs(x[1]-x[2])
-
-    df = pd.DataFrame(conf_dict)
-    df['prediction'] = prediction_list
-    df['absdiff'] = df.apply(absdiff, axis=1)
-
-
-    df = df.sort_values(by=['absdiff'],ascending = False)
-
-    df['europeana_id'] = df['path'].apply(fpath2id)
-
-    df = df.merge(meta_df)
-    df = df.drop_duplicates(subset=['path'])
-    #df = df.head(n_predictions) 
-    df.to_csv(saving_path,index=False)
-    print(df.shape)
-
-    # saving sample
-
-    #if sample_path:
-    #    sample_path = Path(sample_path)
-    #    sample_path.mkdir(parents = True, exist_ok = True)
-
-    #    for path in df['path'].values:
-    #        copyfile(path, sample_path.joinpath(Path(path).name))
-
-    print('Finished')
-
-    
 
 def main(*args,**kwargs):
     predict(**kwargs)

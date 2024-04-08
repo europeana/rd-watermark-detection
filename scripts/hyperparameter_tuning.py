@@ -32,15 +32,16 @@ from sklearn.model_selection import train_test_split, StratifiedKFold
 from PIL import Image
 import torchvision
 import torch.nn as nn
+from torchvision.models import ResNet18_Weights
 
 class Classifier(pl.LightningModule):
     def __init__(self, config):
         super(Classifier, self).__init__()
-        self.accuracy = Accuracy(task="binary", num_classes=10, top_k=1)
+        self.accuracy = Accuracy(task="binary", num_classes=2, top_k=1)
 
         output_dim = 2
 
-        self.model = torchvision.models.resnet18(pretrained=True)
+        self.model = torchvision.models.resnet18(weights = ResNet18_Weights.DEFAULT)
         self.model.fc = nn.Linear(self.model.fc.in_features, output_dim)
         self.sm = nn.Softmax(dim=1)
 
@@ -113,10 +114,11 @@ class TrainingDataset(Dataset):
 
 
 class DataModule(pl.LightningDataModule):
-    def __init__(self, batch_size=128,data_dir=None):
+    def __init__(self, batch_size=128,data_dir=None,num_workers = 6):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
+        self.num_workers = num_workers
 
         self.train_transforms = transforms.Compose([
             transforms.Resize((256, 256)),
@@ -151,21 +153,22 @@ class DataModule(pl.LightningDataModule):
         self.test_dataset = TrainingDataset(X_test,y_test,transform = self.test_transforms)
 
     def train_dataloader(self):
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=1)
+        return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
     def val_dataloader(self):
-        return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=1)
+        return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
     def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=1)
+        return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
 
 
 def main(*args,**kwargs):
 
     data_dir =  kwargs.get('data_dir')
     saving_dir = kwargs.get('saving_dir')
-    num_epochs = kwargs.get('num_epochs')
-    num_samples = kwargs.get('num_samples')
+    num_epochs = kwargs.get('num_epochs',10)
+    num_samples = kwargs.get('num_samples',30)
+    grace_period = kwargs.get('grace_period',5)
 
     ray.init(_temp_dir=saving_dir)
 
@@ -192,12 +195,13 @@ def main(*args,**kwargs):
             callbacks=[RayTrainReportCallback()],
             plugins=[RayLightningEnvironment()],
             enable_progress_bar=False,
+            max_epochs=num_epochs
         )
         trainer = prepare_trainer(trainer)
         trainer.fit(model, datamodule=dm)
 
 
-    scheduler = ASHAScheduler(max_t=num_epochs, grace_period=5, reduction_factor=2)
+    #scheduler = ASHAScheduler(max_t=num_epochs, grace_period=1, reduction_factor=2)
 
     scaling_config = ScalingConfig(
         num_workers=1, use_gpu=True, resources_per_worker={"CPU": 1, "GPU": 1}
@@ -219,7 +223,7 @@ def main(*args,**kwargs):
     )
 
     def tune_mnist_asha(num_samples=10):
-        scheduler = ASHAScheduler(max_t=num_epochs, grace_period=5, reduction_factor=2)
+        scheduler = ASHAScheduler(max_t=num_epochs, grace_period=grace_period, reduction_factor=2)
 
         tuner = tune.Tuner(
             ray_trainer,

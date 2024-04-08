@@ -188,11 +188,12 @@ nohup python3 deployment/inference.py \
 Deep Learning models can be very sensitive to the value of certain hyperparameters. With the following command a hyperparameter search is carried for the batch size and learning rate. The range of the possible values of these parameters can be adjusted in the script
 
 ```shell
-nohup python3 scripts/hyperparameter_tuning.py \
+nohup python3 -u scripts/hyperparameter_tuning.py \
  --data_dir /storage/data/labeled_23555 \
  --saving_dir /storage/results/hyperparameter_tuning \
  --num_epochs 15 \
- --num_samples 40 \
+ --num_samples 30 \
+ --grace_period 3 \
  &> /storage/logs/hyperparameter_tuning.out &
 ```
 

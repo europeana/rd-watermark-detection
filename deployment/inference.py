@@ -213,9 +213,11 @@ def predict(**kwargs):
 
     cols = ['path', 'watermark']
     first_write = True
+    n = 100
+    batch_accumulator = []
 
     with torch.no_grad():
-        for paths,batch in tqdm(train_loader):
+        for i, (paths,batch) in enumerate(tqdm(train_loader)):
             batch = batch.to(device)
             outputs = model(batch).cpu()
 
@@ -224,13 +226,21 @@ def predict(**kwargs):
                 'watermark': outputs[:, 1].cpu().numpy()
             }
             
-            df_batch = pd.DataFrame(batch_data, columns=cols)
+            batch_accumulator.append(pd.DataFrame(batch_data, columns=cols))
+            if (i + 1) % n == 0:
+                df_batch = pd.concat(batch_accumulator, ignore_index=True)
 
-            if first_write:
-                df_batch.to_csv(saving_path, mode='w', header=True, index=False)
-                first_write = False
-            else:
-                df_batch.to_csv(saving_path, mode='a', header=False, index=False)
+                if first_write:
+                    df_batch.to_csv(saving_path, mode='w', header=True, index=False)
+                    first_write = False
+                else:
+                    df_batch.to_csv(saving_path, mode='a', header=False, index=False)
+                
+                batch_accumulator = []
+
+    if batch_accumulator:
+        df_batch = pd.concat(batch_accumulator, ignore_index=True)
+        df_batch.to_csv(saving_path, mode='a', header=False, index=False)
 
  
     print('Finished predicting')

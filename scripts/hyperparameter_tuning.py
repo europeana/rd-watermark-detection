@@ -173,12 +173,12 @@ def main(*args,**kwargs):
     saving_dir.mkdir(exist_ok = True, parents = True)
 
     default_config = {
-        "lr": 1e-3,
+        "lr": 1e-5,
     }
 
     search_space = {
         "lr": tune.loguniform(1e-6, 1e-3),
-        "batch_size": tune.choice([4, 8, 16]),
+        "batch_size": tune.choice([8,16,32,64]),
     }
 
     def train_func(config):
@@ -197,7 +197,7 @@ def main(*args,**kwargs):
         trainer.fit(model, datamodule=dm)
 
 
-    scheduler = ASHAScheduler(max_t=num_epochs, grace_period=1, reduction_factor=2)
+    scheduler = ASHAScheduler(max_t=num_epochs, grace_period=5, reduction_factor=2)
 
     scaling_config = ScalingConfig(
         num_workers=1, use_gpu=True, resources_per_worker={"CPU": 1, "GPU": 1}
@@ -219,7 +219,7 @@ def main(*args,**kwargs):
     )
 
     def tune_mnist_asha(num_samples=10):
-        scheduler = ASHAScheduler(max_t=num_epochs, grace_period=1, reduction_factor=2)
+        scheduler = ASHAScheduler(max_t=num_epochs, grace_period=5, reduction_factor=2)
 
         tuner = tune.Tuner(
             ray_trainer,

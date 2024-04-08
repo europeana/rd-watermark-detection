@@ -116,8 +116,8 @@ Run the following command to download the image files of the objects retrieved i
 
 ```
 nohup python3 scripts/data_ops.py download \
- --input /storage/data/watermark_record_sample.csv \
- --saving_dir /storage/data/watermark_record_sample \
+ --input /storage/data/labeled_8592.csv \
+ --saving_dir /storage/data/labeled_8592 \
  &> /storage/logs/download_images.out &
 
 ```
@@ -133,10 +133,10 @@ The following command trains a model as described above taking the values for th
 
 ```shell
 nohup python3 scripts/machine_learning.py train \
- --batch_size 16 \
+ --batch_size 64 \
  --learning_rate 1e-5 \
- --data_dir /storage/data/watermark_record_sample/ \
- --saving_dir /storage/results/watermark_record_sample_lr_1e-5/ \
+ --data_dir /storage/data/labeled_23555/ \
+ --saving_dir /storage/results/labeled_23555/ \
  --max_epochs 60 \
  --sample 1.0 \
  --crossvalidation False \
@@ -146,7 +146,7 @@ nohup python3 scripts/machine_learning.py train \
 The training can be monitored using tensorboard:
 
 ```shell
-tensorboard --port 6006 --host 0.0.0.0 --logdir=/storage/results/watermark_record_sample_lr_1e-5/split_1/tensorboard_logs/
+tensorboard --port 6006 --host 0.0.0.0 --logdir=/storage/results/labeled_23555/split_1/tensorboard_logs/
 ```
 
 The results of the training will be a set of files with the model weights, the data splits and evalutation metrics. There are also interpretability maps using GradCAM, which has been adapted from [this repository](https://github.com/jacobgil/pytorch-grad-cam)
@@ -175,7 +175,7 @@ Deployment
 ```shell
 nohup python3 deployment/inference.py \
  --input /storage/data/inference \
- --results_path /storage/results/watermark_record_sample_lr_1e-5/split_1 \
+ --results_path /storage/results/labeled_23555/split_1 \
  --metadata /storage/data/sample_inference.csv \
  --saving_path /storage/results/results_inference.csv \
  --sample 1.0 \
@@ -189,10 +189,10 @@ Deep Learning models can be very sensitive to the value of certain hyperparamete
 
 ```shell
 nohup python3 scripts/hyperparameter_tuning.py \
- --data_dir /storage/data/labeled_4312 \
+ --data_dir /storage/data/labeled_23555 \
  --saving_dir /storage/results/hyperparameter_tuning \
  --num_epochs 15 \
- --num_samples 50 \
+ --num_samples 40 \
  &> /storage/logs/hyperparameter_tuning.out &
 ```
 

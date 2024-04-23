@@ -115,14 +115,37 @@ nohup python3 scripts/data_ops.py harvest_data \
 Run the following command to download the image files of the objects retrieved in the previous step:
 
 ```
-nohup python3 scripts/data_ops.py download \
- --input /storage/data/labeled_8592.csv \
- --saving_dir /storage/data/labeled_8592 \
+nohup python3 -u scripts/data_ops.py download \
+ --input /storage/data/labeled_from_record.csv \
+ --saving_dir /storage/data/labeled_from_record \
  &> /storage/logs/download_images.out &
 
 ```
 
 Before training a model you might want to manually review and annotate the data using labelstudio. Go to the section [Data annotation](#data-annotation)
+
+
+```
+nohup python3 scripts/get_collections_data.py \
+ --saving_path /storage/data/collections.csv \
+ &> /storage/logs/get_collections_data.out &
+```
+
+
+```
+nohup python3 -u scripts/get_labeled_dataset.py \
+ --input_path /storage/data/watermark_record.csv \
+ --output_path /storage/data/labeled_from_record.csv \
+ &> /storage/logs/get_labeled_dataset.out &
+```
+
+```
+nohup python3 -u scripts/data_ops.py download \
+ --input /storage/data/labeled_from_record.csv \
+ --saving_dir /storage/data/labeled_from_record \
+ &> /storage/logs/download_images.out &
+
+```
 
 
 ### Model training
@@ -132,12 +155,13 @@ Once we have a labeled dataset we can train an image classification model that w
 The following command trains a model as described above taking the values for the batch size, learning rate, max number of epochs, and crossvalidation as arguments:
 
 ```shell
-nohup python3 scripts/machine_learning.py train \
+nohup python3 -u scripts/machine_learning.py train \
  --batch_size 64 \
- --learning_rate 1e-5 \
+ --learning_rate 5e-5 \
+ --model_size 34 \
  --data_dir /storage/data/labeled_23555/ \
- --saving_dir /storage/results/labeled_23555/ \
- --max_epochs 60 \
+ --saving_dir /storage/results/labeled_23555_resnet_34/ \
+ --max_epochs 40 \
  --sample 1.0 \
  --crossvalidation False \
  &> /storage/logs/training.out &
@@ -146,7 +170,7 @@ nohup python3 scripts/machine_learning.py train \
 The training can be monitored using tensorboard:
 
 ```shell
-tensorboard --port 6006 --host 0.0.0.0 --logdir=/storage/results/labeled_23555/split_1/tensorboard_logs/
+tensorboard --port 6006 --host 0.0.0.0 --logdir=/storage/results/labeled_23555_resnet_34/split_1/tensorboard_logs/
 ```
 
 The results of the training will be a set of files with the model weights, the data splits and evalutation metrics. There are also interpretability maps using GradCAM, which has been adapted from [this repository](https://github.com/jacobgil/pytorch-grad-cam)
@@ -173,7 +197,7 @@ nohup python3 scripts/machine_learning.py predict \
 Deployment
 
 ```shell
-nohup python3 deployment/inference.py \
+nohup python3 -u deployment/inference.py \
  --input /storage/data/inference \
  --results_path /storage/results/labeled_23555/split_1 \
  --metadata /storage/data/sample_inference.csv \
@@ -191,9 +215,10 @@ Deep Learning models can be very sensitive to the value of certain hyperparamete
 nohup python3 -u scripts/hyperparameter_tuning.py \
  --data_dir /storage/data/labeled_23555 \
  --saving_dir /storage/results/hyperparameter_tuning \
- --num_epochs 15 \
- --num_samples 30 \
- --grace_period 3 \
+ --num_epochs 10 \
+ --num_samples 20 \
+ --grace_period 2 \
+ --sample 0.5 \
  &> /storage/logs/hyperparameter_tuning.out &
 ```
 

@@ -114,11 +114,12 @@ class TrainingDataset(Dataset):
 
 
 class DataModule(pl.LightningDataModule):
-    def __init__(self, batch_size=128,data_dir=None,num_workers = 6):
+    def __init__(self, batch_size=128,data_dir=None,num_workers = 6,sample = 1.0):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.sample = sample
 
         self.train_transforms = transforms.Compose([
             transforms.Resize((256, 256)),
@@ -140,13 +141,19 @@ class DataModule(pl.LightningDataModule):
         data_dir = Path(self.data_dir)
         imgs = np.array([str(p) for p in data_dir.rglob("*/*")])
         labels = np.array([Path(p).parent.name for p in imgs])
+
+        if self.sample != 1.0:
+            _, imgs, _, labels = train_test_split(imgs, labels, stratify=labels,
+                                                  test_size=self.sample, random_state=42)
+
+        
         le = preprocessing.LabelEncoder()
         _labels = le.fit_transform(labels)
         classes = le.classes_
         labels = F.one_hot(torch.from_numpy(_labels)).float()
 
-        X_train_val, X_test, y_train_val, y_test = train_test_split(imgs, labels, test_size=0.2)
-        X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test_size=0.2)
+        X_train_val, X_test, y_train_val, y_test = train_test_split(imgs, labels, test_size=0.2,stratify=labels)
+        X_train, X_val, y_train, y_val = train_test_split(X_train_val, y_train_val, test_size=0.2,stratify=y_train_val)
 
         self.train_dataset = TrainingDataset(X_train,y_train,transform = self.train_transforms)
         self.val_dataset = TrainingDataset(X_val,y_val,transform = self.test_transforms)
@@ -166,6 +173,7 @@ def main(*args,**kwargs):
 
     data_dir =  kwargs.get('data_dir')
     saving_dir = kwargs.get('saving_dir')
+    sample = kwargs.get('sample',1.0)
     num_epochs = kwargs.get('num_epochs',10)
     num_samples = kwargs.get('num_samples',30)
     grace_period = kwargs.get('grace_period',5)
@@ -180,12 +188,12 @@ def main(*args,**kwargs):
     }
 
     search_space = {
-        "lr": tune.loguniform(1e-6, 1e-3),
-        "batch_size": tune.choice([8,16,32,64]),
+        "lr": tune.loguniform(1e-5, 1e-3),
+        "batch_size": tune.choice([8,16,32,64,128]),
     }
 
     def train_func(config):
-        dm = DataModule(batch_size=config["batch_size"],data_dir = data_dir)
+        dm = DataModule(batch_size=config["batch_size"],data_dir = data_dir, sample = sample)
         model = Classifier(config)
 
         trainer = pl.Trainer(

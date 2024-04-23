@@ -17,6 +17,7 @@ import pandas as pd
 from sklearn.metrics import confusion_matrix, precision_score,accuracy_score, recall_score
 import matplotlib.pyplot as plt
 from shutil import copyfile
+import time
 
 from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
@@ -195,8 +196,9 @@ def predict(**kwargs):
 
     image_arr = np.array([str(path) for path in input.rglob('*.jpg')])
     n = image_arr.shape[0]
-    index = np.random.choice(n, int(sample*n), replace=False)  
-    image_arr = image_arr[index]
+    if sample != 1.0:
+        index = np.random.choice(n, int(sample*n), replace=False)  
+        image_arr = image_arr[index]
     df = pd.DataFrame({'path':image_arr})
     df['europeana_id'] = df['path'].apply(fpath2id)
 
@@ -207,6 +209,7 @@ def predict(**kwargs):
     print('Dataset loaded')
 
     print(f'Predicting on {image_arr.shape[0]} images...')
+    start = time.time()
 
     train_dataset = InferenceDataset(image_arr,transform = transform)
     train_loader = DataLoader(train_dataset, batch_size=batch_size,collate_fn=my_collate,num_workers=num_workers)
@@ -242,8 +245,9 @@ def predict(**kwargs):
         df_batch = pd.concat(batch_accumulator, ignore_index=True)
         df_batch.to_csv(saving_path, mode='a', header=False, index=False)
 
- 
-    print('Finished predicting')
+    end = time.time()
+
+    print(f'Finished predicting, it took {(end-start)/60} minutes')
 
 def main(*args,**kwargs):
     predict(**kwargs)

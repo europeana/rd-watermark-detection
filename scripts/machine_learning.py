@@ -96,7 +96,15 @@ class Classifier(pl.LightningModule):
         learning_rate = kwargs.get('learning_rate')
         self.threshold = kwargs.get('threshold')
 
-        self.model = torchvision.models.resnet18(pretrained=True)
+        self.model_size = kwargs.get('model_size')
+
+        if self.model_size == 18:
+            self.model = torchvision.models.resnet18(pretrained=True)
+        elif self.model_size == 34:
+            self.model = torchvision.models.resnet34(pretrained=True)
+        elif self.model_size == 50:
+            self.model = torchvision.models.resnet50(pretrained=True)
+
         self.model.fc = nn.Linear(self.model.fc.in_features, output_dim)
         self.embedding = nn.Sequential(*list(self.model.children())[:-1])
         self.sm = nn.Softmax(dim=1)
@@ -184,6 +192,7 @@ def train(**kwargs):
     patience = kwargs.get('patience',5)
     crossvalidation = kwargs.get('crossvalidation',False)
     K = kwargs.get('K',5)
+    model_size = kwargs.get('model_size',18)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -284,7 +293,8 @@ def train(**kwargs):
         model = Classifier(
             output_dim = len(classes), 
             learning_rate = learning_rate,
-            threshold = threshold
+            threshold = threshold,
+            model_size = model_size
         )
 
         callbacks = [EarlyStopping(monitor="valid_loss",patience=patience, verbose = True)]
@@ -380,7 +390,6 @@ def train(**kwargs):
         XAI_dir.mkdir(exist_ok = True, parents = True)
 
         model.eval()
-
 
         inference_dataset = InferenceDataset(image_arr,transform = test_transform)
         inference_loader = DataLoader(inference_dataset, batch_size=N_XAI,collate_fn=my_collate)

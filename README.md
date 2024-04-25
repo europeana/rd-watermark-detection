@@ -161,7 +161,7 @@ The following command trains a model as described above taking the values for th
 ```shell
 nohup python3 -u scripts/machine_learning.py train \
  --batch_size 64 \
- --learning_rate 5e-5 \
+ --learning_rate 1e-5 \
  --model_size 18 \
  --data_dir /storage/data/labeled_55255/ \
  --saving_dir /storage/results/labeled_55255/ \

@@ -98,6 +98,7 @@ class Classifier(pl.LightningModule):
         output_dim = kwargs.get('output_dim')
         learning_rate = kwargs.get('learning_rate')
         self.threshold = kwargs.get('threshold')
+        dropout_rate = kwargs.get('dropout', 0.5)
 
         self.model_size = kwargs.get('model_size')
 
@@ -108,9 +109,14 @@ class Classifier(pl.LightningModule):
         elif self.model_size == 50:
             self.model = torchvision.models.resnet50(pretrained=True)
 
-        self.model.fc = nn.Linear(self.model.fc.in_features, output_dim)
+        #self.model.fc = nn.Linear(self.model.fc.in_features, output_dim)
+        self.model.fc = nn.Sequential(
+            nn.Dropout(dropout_rate),  # Add dropout before the final FC layer
+            nn.Linear(self.model.fc.in_features, output_dim)
+        )
         self.embedding = nn.Sequential(*list(self.model.children())[:-1])
         self.sm = nn.Softmax(dim=1)
+
         self.accuracy = torchmetrics.Accuracy(task='binary')
         self.precision = torchmetrics.Precision(task='binary')
         self.recall = torchmetrics.Recall(task='binary')
@@ -216,7 +222,7 @@ def train(**kwargs):
     num_workers = kwargs.get('num_workers',8)
     patience = kwargs.get('patience',5)
     crossvalidation = kwargs.get('crossvalidation',False)
-    K = kwargs.get('K',5)
+    K = kwargs.get('K',10)
     model_size = kwargs.get('model_size',18)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -226,7 +232,7 @@ def train(**kwargs):
     saving_dir.mkdir(exist_ok = True, parents=True)
 
     train_transform = transforms.Compose([
-        transforms.Resize((256, 256)),
+        transforms.Resize((224, 224)),
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomVerticalFlip(p=0.5),
         transforms.RandomApply([transforms.Grayscale(num_output_channels=3)], p=0.25),
@@ -235,7 +241,7 @@ def train(**kwargs):
     ])
 
     test_transform = transforms.Compose([
-        transforms.Resize((256, 256)),
+        transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])
@@ -332,7 +338,7 @@ def train(**kwargs):
         trainer = pl.Trainer(
             accelerator="auto",
             max_epochs = max_epochs,
-            log_every_n_steps=10000,
+            log_every_n_steps=1000,
             callbacks = callbacks,
             logger = logger
         )
@@ -443,7 +449,7 @@ def train(**kwargs):
             path = paths[k]
             
             rgb_img = Image.open(path).convert("RGB")
-            rgb_img = transforms.Resize((256, 256))(rgb_img)
+            rgb_img = transforms.Resize((224, 224))(rgb_img)
             
             visualization = show_cam_on_image(np.float32(rgb_img)/255, grayscale_cam[k,:], use_rgb=True)
 
@@ -531,7 +537,7 @@ def predict(**kwargs):
     model.eval()
 
     transform = transforms.Compose([
-        transforms.Resize((256, 256)),
+        transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])

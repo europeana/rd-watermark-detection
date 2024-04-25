@@ -147,6 +147,10 @@ nohup python3 -u scripts/data_ops.py download \
 
 ```
 
+In rd-img-utilities
+
+nohup python3 -u scripts/download_images.py --labeled True --sample 1.0 --suffix 'LARGE' --input /storage/data/labeled_from_record.csv --output /storage/data/labeled_from_record &> /storage/logs/download_images.out &
+
 
 ### Model training
 
@@ -158,10 +162,10 @@ The following command trains a model as described above taking the values for th
 nohup python3 -u scripts/machine_learning.py train \
  --batch_size 64 \
  --learning_rate 5e-5 \
- --model_size 34 \
- --data_dir /storage/data/labeled_23555/ \
- --saving_dir /storage/results/labeled_23555_resnet_34/ \
- --max_epochs 40 \
+ --model_size 18 \
+ --data_dir /storage/data/labeled_55255/ \
+ --saving_dir /storage/results/labeled_55255/ \
+ --max_epochs 50 \
  --sample 1.0 \
  --crossvalidation False \
  &> /storage/logs/training.out &
@@ -170,7 +174,7 @@ nohup python3 -u scripts/machine_learning.py train \
 The training can be monitored using tensorboard:
 
 ```shell
-tensorboard --port 6006 --host 0.0.0.0 --logdir=/storage/results/labeled_23555_resnet_34/split_1/tensorboard_logs/
+tensorboard --port 6006 --host 0.0.0.0 --logdir=/storage/results/labeled_55255/split_1/tensorboard_logs/
 ```
 
 The results of the training will be a set of files with the model weights, the data splits and evalutation metrics. There are also interpretability maps using GradCAM, which has been adapted from [this repository](https://github.com/jacobgil/pytorch-grad-cam)

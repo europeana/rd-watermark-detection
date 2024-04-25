@@ -29,7 +29,7 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image
 
 from PIL import ImageFile
-ImageFile.LOAD_TRUNCATED_IMAGES = True
+ImageFile.LOAD_TRUNCATED_IMAGES = False
 
 from pytorch_lightning.loggers import TensorBoardLogger
 
@@ -53,12 +53,15 @@ class TrainingDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        img_name = self.img_list[idx]
+        img_path = self.img_list[idx]
         label = self.labels[idx]
 
-        image = Image.open(img_name).convert('RGB')
-        if self.transform:
-            image = self.transform(image)
+        try:
+            image = Image.open(img_path).convert('RGB')
+            if self.transform:
+                image = self.transform(image)
+        except:
+            return None, None
         return image,label
 
 
@@ -82,7 +85,7 @@ class InferenceDataset(Dataset):
             if self.transform:
                 image = self.transform(image)
         except:
-            return None
+            return None, None
         return img_path,image
 
 
@@ -109,6 +112,9 @@ class Classifier(pl.LightningModule):
         self.embedding = nn.Sequential(*list(self.model.children())[:-1])
         self.sm = nn.Softmax(dim=1)
         self.accuracy = torchmetrics.Accuracy(task='binary')
+        self.precision = torchmetrics.Precision(task='binary')
+        self.recall = torchmetrics.Recall(task='binary')
+        self.confmat = torchmetrics.ConfusionMatrix(task='binary')
 
     def forward(self, x):
         out = self.model(x)
@@ -131,6 +137,12 @@ class Classifier(pl.LightningModule):
         loss = F.cross_entropy(y_hat, y)
         y_hat = torch.where(y_hat>self.threshold,1,0).int()
         self.accuracy(y_hat, y.int())
+        self.precision(y_hat, y.int())
+        self.recall(y_hat, y.int())
+        self.confmat(y_hat, y.int())
+        #self.log('valid_confmat_step', self.confmat)
+        self.log('valid_recall_step', self.recall)
+        self.log('valid_prec_step', self.precision)
         self.log('valid_acc_step', self.accuracy)
         self.log('valid_loss', loss)
 
@@ -141,6 +153,12 @@ class Classifier(pl.LightningModule):
         loss = F.cross_entropy(y_hat, y)
         y_hat = torch.where(y_hat>self.threshold,1,0).int()
         self.accuracy(y_hat, y.int())
+        self.precision(y_hat, y.int())
+        self.recall(y_hat, y.int())
+        self.confmat(y_hat, y.int())
+        #self.log('test_confmat_step', self.confmat)
+        self.log('test_recall_step', self.recall)
+        self.log('test_prec_step', self.precision)
         self.log('test_acc_step', self.accuracy)
         self.log('test_loss', loss)
 
@@ -148,8 +166,15 @@ class Classifier(pl.LightningModule):
         return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
 
 def my_collate(batch):
-    batch = list(filter(lambda x: x is not None, batch))
+    # Filter out all None items
+    batch = [item for item in batch if item[0] is not None and item[1] is not None]
+    if not batch:
+        return torch.Tensor(), torch.Tensor()  # Return empty tensors if batch is empty
     return torch.utils.data.dataloader.default_collate(batch)
+
+# def my_collate(batch):
+#     batch = list(filter(lambda x: x is not None, batch))
+#     return torch.utils.data.dataloader.default_collate(batch)
 
 # Method for computing out-of-sample embeddings
 def compute_embeddings(model, testloader,device):
@@ -215,18 +240,19 @@ def train(**kwargs):
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
     ])
 
+    print("Processing dataset...")
 
-    imgs = np.array([str(p) for p in data_dir.rglob("*/*")])
-    labels = np.array([Path(p).parent.name for p in imgs])
 
-    # n = int(imgs.shape[0]*sample)
-    # imgs = imgs[:n]
-    # labels = labels[:n]
+    data = pd.Series(data_dir.rglob("*/*"))
+    imgs = data.apply(str).values
+    labels = data.apply(lambda x: x.parent.name).values
+
 
     le = preprocessing.LabelEncoder()
     _labels = le.fit_transform(labels)
     classes = le.classes_
-    labels = F.one_hot(torch.from_numpy(_labels)).float()
+    labels = torch.nn.functional.one_hot(torch.tensor(_labels), num_classes=len(classes)).float()
+
 
     # Create k splits of the dataset
 
@@ -238,6 +264,8 @@ def train(**kwargs):
     for fold, (train_ids, test_ids) in enumerate(splits):
         train_id_list.append(train_ids)
         test_id_list.append(test_ids)
+
+    print("Splits created")
 
 
     pred_probs_list, embeddings_list = [], []
@@ -317,7 +345,8 @@ def train(**kwargs):
 
         # Evaluation
 
-        model.eval()
+        # model.eval()
+        # model = model.to(device)
 
         with open(split_dir.joinpath('splits.json'),'r') as f:
             test_split = json.load(f)['test']
@@ -325,59 +354,60 @@ def train(**kwargs):
         image_arr = np.array(test_split['images'])
         label_arr = np.array([classes[i] for i in test_split['labels']])
 
-        print(f'evaluating on {image_arr.shape[0]} images')
+        # print(f'evaluating on {image_arr.shape[0]} images')
 
-        inference_dataset = InferenceDataset(image_arr,transform = test_transform)
-        inference_loader = DataLoader(inference_dataset, batch_size=batch_size,collate_fn=my_collate)
+        # inference_dataset = InferenceDataset(image_arr,transform = test_transform)
+        # inference_loader = DataLoader(inference_dataset, batch_size=batch_size,collate_fn=my_collate)
 
-        conf_list = []
-        path_list = []
-        prediction_list = []
-        with torch.no_grad():
-            for paths,batch in inference_loader:
-                outputs = model(batch)
-                prediction_list += [classes[i] for i in torch.argmax(outputs,axis=1)]
-                conf_list.append(outputs)
-                path_list.append(paths)
+        # conf_list = []
+        # path_list = []
+        # prediction_list = []
+        # with torch.no_grad():
+        #     for paths,batch in tqdm(inference_loader):
+        #         batch = batch.to(device)
+        #         outputs = model(batch)
+        #         prediction_list += [classes[i] for i in torch.argmax(outputs,axis=1)]
+        #         conf_list.append(outputs)
+        #         path_list.append(paths)
 
-        prediction_arr = np.array(prediction_list)
-        path_list = [list(t) for t in path_list]
-        path_list = [item for sublist in path_list for item in sublist]
+        # prediction_arr = np.array(prediction_list)
+        # path_list = [list(t) for t in path_list]
+        # path_list = [item for sublist in path_list for item in sublist]
 
-        df = pd.DataFrame({
-            'path':path_list,
-            'predictions':prediction_arr.tolist(),
-            'labels':label_arr.tolist(),
-            })
-        df = df.loc[df['predictions'] != df['labels']]
-        df.to_csv(split_dir.joinpath('misclassifications.csv'),index=False)
+        # df = pd.DataFrame({
+        #     'path':path_list,
+        #     'predictions':prediction_arr.tolist(),
+        #     'labels':label_arr.tolist(),
+        #     })
+        # df = df.loc[df['predictions'] != df['labels']]
+        # df.to_csv(split_dir.joinpath('misclassifications.csv'),index=False)
 
-        print('Calculating metrics')
+        # print('Calculating metrics')
 
-        cm = confusion_matrix(label_arr,prediction_arr).tolist()
-        precision = precision_score(label_arr,prediction_arr,average="binary",pos_label="watermark")
-        recall = recall_score(label_arr,prediction_arr,average="binary",pos_label="watermark")
-        accuracy = accuracy_score(label_arr,prediction_arr)
+        # cm = confusion_matrix(label_arr,prediction_arr).tolist()
+        # precision = precision_score(label_arr,prediction_arr,average="binary",pos_label="watermark")
+        # recall = recall_score(label_arr,prediction_arr,average="binary",pos_label="watermark")
+        # accuracy = accuracy_score(label_arr,prediction_arr)
 
-        metrics_dict = {
-            'accuracy':accuracy,
-            'precision':precision,
-            'recall':recall,
-            'cm':cm,
-        }
+        # metrics_dict = {
+        #     'accuracy':accuracy,
+        #     'precision':precision,
+        #     'recall':recall,
+        #     'cm':cm,
+        # }
 
-        # plot confusion matrix
-        fig,ax = plt.subplots()
-        df_cm = pd.DataFrame(cm, index = classes,
-                    columns = classes)
-        ax = sn.heatmap(df_cm, annot=True,cmap='Blues', fmt='g')
-        ax.set_xlabel('Actual Values')
-        ax.set_ylabel('Predicted Values')
-        fig.savefig(split_dir.joinpath('confusion_matrix.jpg'))
+        # # plot confusion matrix
+        # fig,ax = plt.subplots()
+        # df_cm = pd.DataFrame(cm, index = classes,
+        #             columns = classes)
+        # ax = sn.heatmap(df_cm, annot=True,cmap='Blues', fmt='g')
+        # ax.set_xlabel('Actual Values')
+        # ax.set_ylabel('Predicted Values')
+        # fig.savefig(split_dir.joinpath('confusion_matrix.jpg'))
 
         # save metris in json
         with open(split_dir.joinpath('metrics.json'),'w') as f:
-            json.dump(metrics_dict,f)
+            json.dump(test_metrics[0],f)
 
         model = model.to(device)
 
@@ -406,7 +436,7 @@ def train(**kwargs):
         targets = [ClassifierOutputTarget(l) for l in pred_labels]
         grayscale_cam = cam(input_tensor=input_tensor, targets=targets)
 
-        for k in range(batch_size):
+        for k in range(N_XAI):
             pred_idx = pred_labels[k].item()
             pred_label = classes[pred_idx]
             pred_conf = round(pred_confs[k][pred_idx].item(),3)
@@ -428,34 +458,34 @@ def train(**kwargs):
 
         # Calculate embeddings
 
-        # Compute out-of-sample embeddings
-        print("Computing feature embeddings ...")
-        fold_embeddings = compute_embeddings(model, test_loader,device)
-        embeddings_list.append(fold_embeddings)
+        # # Compute out-of-sample embeddings
+        # print("Computing feature embeddings ...")
+        # fold_embeddings = compute_embeddings(model, test_loader,device)
+        # embeddings_list.append(fold_embeddings)
 
-        print("Computing predicted probabilities ...")
-        # Compute out-of-sample predicted probabilities
-        fold_pred_probs = compute_pred_probs(model, test_loader,device)
-        pred_probs_list.append(fold_pred_probs)
+        # print("Computing predicted probabilities ...")
+        # # Compute out-of-sample predicted probabilities
+        # fold_pred_probs = compute_pred_probs(model, test_loader,device)
+        # pred_probs_list.append(fold_pred_probs)
 
     print("Finished Training")
 
     # Combine embeddings and predicted probabilities from each fold
-    features = torch.vstack(embeddings_list).numpy()
-    features = np.squeeze(features)
+    # features = torch.vstack(embeddings_list).numpy()
+    # features = np.squeeze(features)
 
-    logits = torch.vstack(pred_probs_list)
-    pred_probs = logits.numpy()
+    # logits = torch.vstack(pred_probs_list)
+    # pred_probs = logits.numpy()
 
-    indices = np.hstack(test_id_list)
+    # indices = np.hstack(test_id_list)
 
-    imgs = imgs[indices]
-    _labels = _labels[indices]
-    dataset = {'image':imgs,'label':_labels}
+    # imgs = imgs[indices]
+    # _labels = _labels[indices]
+    # dataset = {'image':imgs,'label':_labels}
 
-    torch.save(features, saving_dir.joinpath('features.pt'))
-    torch.save(dataset, saving_dir.joinpath('dataset.pt'))
-    torch.save(pred_probs, saving_dir.joinpath('pred_probs.pt'))
+    # torch.save(features, saving_dir.joinpath('features.pt'))
+    # torch.save(dataset, saving_dir.joinpath('dataset.pt'))
+    # torch.save(pred_probs, saving_dir.joinpath('pred_probs.pt'))
 
     print("Finished")
 
